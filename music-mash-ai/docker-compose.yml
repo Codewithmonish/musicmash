@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  music-mash-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: music-mash-ai
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./models:/app/models
+      - ./logs:/app/logs
+      - ./music_mash_ai.db:/app/music_mash_ai.db
+    environment:
+      - DATABASE_URL=sqlite:///./music_mash_ai.db
+      - REDIS_URL=redis://redis:6379/0
+      - DEBUG=True
+      - LOG_LEVEL=INFO
+    depends_on:
+      - redis
+    networks:
+      - music-mash-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: music-mash-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - music-mash-network
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+
+networks:
+  music-mash-network:
+    driver: bridge

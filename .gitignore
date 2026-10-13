@@ -1,0 +1,38 @@
+# Secrets
+.env
+*.env.local
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+.pytest_cache/
+*.db
+test.db
+
+# AI data and models
+music-mash-ai/data/
+music-mash-ai/models/
+music-mash-ai/chroma_db/
+music-mash-ai/uploads/
+music-mash-ai/logs/
+
+# Java
+music-mash-backend/target/
+music-mash-backend/uploads/
+
+# Frontend
+node_modules/
+music-mash-frontend/dist/
+tmp-out.css
+
+# OS / editor
+.DS_Store
+Thumbs.db
+NUL
+.claude/settings.local.json
+
+# VS Code Copilot Java-upgrade tool
+.github/modernize/
