@@ -168,3 +168,66 @@ def test_unreadable_audio_marks_analysis_failed(setup_database, tmp_path):
     status = client.get(f"/api/ai/status/{analysis_id}").json()
     assert status["status"] == "FAILED"
     assert "Could not analyse the audio" in status["error_message"]
+
+
+def _analyse_generated_audio(tmp_path, signal, name="take.wav"):
+    import soundfile as sf
+    path = tmp_path / name
+    sf.write(path, signal, 22050)
+    response = client.post("/api/ai/analyze", json={
+        "performance_id": 1, "user_id": 1, "audio_url": str(path)
+    })
+    return response.json()["id"]
+
+
+def test_pitch_contour_endpoint_shape_and_downsampling(setup_database, tmp_path, monkeypatch):
+    """A generated C-major scale comes back as a capped contour plus its 8 notes."""
+    import numpy as np
+    from app.services.audio import metrics
+
+    monkeypatch.setattr(metrics, "CONTOUR_MAX_POINTS", 40)  # ~140 frames must shrink to <= 40
+    sr = 22050
+    freqs = np.repeat(440 * 2 ** ((np.array([60, 62, 64, 65, 67, 69, 71, 72]) - 69) / 12), int(0.4 * sr))
+    scale = 0.5 * np.sin(2 * np.pi * np.cumsum(freqs) / sr)
+    analysis_id = _analyse_generated_audio(tmp_path, scale)
+
+    response = client.get(f"/api/ai/result/{analysis_id}/pitch-contour")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["analysis_id"] == analysis_id
+    assert data["max_points"] == 40
+    assert data["reason"] is None
+    points = data["points"]
+    assert 20 < len(points) <= 40
+    assert set(points[0]) == {"t", "midi_float", "cents_off", "voiced"}
+    assert [p["t"] for p in points] == sorted(p["t"] for p in points)
+    for p in points:
+        if p["voiced"]:
+            assert 59.5 < p["midi_float"] < 72.5 and abs(p["cents_off"]) <= 50
+        else:
+            assert p["midi_float"] is None and p["cents_off"] is None
+
+    assert [n["note_name"] for n in data["notes"]] == ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"]
+    assert set(data["notes"][0]) == {"start", "end", "midi", "note_name", "mean_cents"}
+
+    # The (large) contour is not repeated in the main /result payload.
+    assert "pitch_contour" not in client.get(f"/api/ai/result/{analysis_id}").json()["audio_features"]
+
+
+def test_pitch_contour_is_empty_with_reason_for_unpitched_audio(setup_database, tmp_path):
+    import numpy as np
+    noise = 0.1 * np.random.default_rng(0).standard_normal(22050 * 2)
+    analysis_id = _analyse_generated_audio(tmp_path, noise, "noise.wav")
+
+    data = client.get(f"/api/ai/result/{analysis_id}/pitch-contour").json()
+    assert data["points"] == [] and data["notes"] == []
+    assert "detectable pitch" in data["reason"]
+
+
+def test_pitch_contour_errors(setup_database, tmp_path):
+    assert client.get("/api/ai/result/99999/pitch-contour").status_code == 404
+    failed_id = client.post("/api/ai/analyze", json={
+        "performance_id": 1, "user_id": 1, "audio_url": str(tmp_path / "missing.wav")
+    }).json()["id"]
+    assert client.get(f"/api/ai/result/{failed_id}/pitch-contour").status_code == 400

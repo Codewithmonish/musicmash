@@ -126,6 +126,30 @@ class SkillPredictionResponse(BaseModel):
                                    mode="before")(_json_list)
 
 
+class ContourPoint(BaseModel):
+    t: float = Field(..., description="Time, seconds")
+    midi_float: Optional[float] = Field(None, description="Fractional MIDI pitch (69.0 = A4); null when unvoiced")
+    cents_off: Optional[float] = Field(None, description="Deviation from nearest semitone, cents (+ = sharp)")
+    voiced: bool = Field(..., description="Whether this point has a detectable pitch")
+
+
+class ContourNote(BaseModel):
+    start: float = Field(..., description="Note start, seconds")
+    end: float = Field(..., description="Note end, seconds")
+    midi: int = Field(..., description="Nearest equal-tempered MIDI note number")
+    note_name: str = Field(..., description="Note name, e.g. C#4")
+    mean_cents: float = Field(..., description="Mean deviation from the note, cents (+ = sharp)")
+
+
+class PitchContourResponse(BaseModel):
+    """Downsampled pitch curve plus the segmented notes, for plotting."""
+    analysis_id: int
+    max_points: int = Field(..., description="Upper bound on len(points)")
+    points: list[ContourPoint] = Field(default_factory=list)
+    notes: list[ContourNote] = Field(default_factory=list)
+    reason: Optional[str] = Field(None, description="Why there is no contour, when points is empty")
+
+
 class AnalysisResultResponse(BaseModel):
     analysis: AnalysisStatusResponse
     audio_features: Optional[AudioFeaturesResponse] = None

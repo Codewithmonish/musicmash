@@ -50,6 +50,8 @@ MIN_BEATS_PER_HALF = 4       # needed in each half of the take to measure tempo 
 
 SILENCE_GATE_DB = 60.0       # RMS frames this far below the loudest frame count as silence
 
+CONTOUR_MAX_POINTS = 1500    # the stored pitch contour is downsampled to at most this many points
+
 # Pitch search range (lowest note, highest note) per instrument. pYIN only looks for f0
 # inside this range, which avoids octave errors and speeds it up.
 INSTRUMENT_PITCH_RANGES: dict[str, tuple[str, str]] = {
@@ -152,6 +154,20 @@ class GridFit:
     residuals_s: np.ndarray
 
 
+@dataclass(frozen=True)
+class ContourPoint:
+    """One point of the downsampled pitch contour.
+
+    t: time in seconds. voiced: whether this stretch has a pitch.
+    midi_float: fractional MIDI pitch (69.0 = A4 exactly), None when unvoiced.
+    cents_off: deviation from the nearest semitone in cents (+ = sharp), None when unvoiced.
+    """
+    t: float
+    midi_float: Optional[float]
+    cents_off: Optional[float]
+    voiced: bool
+
+
 @dataclass
 class PerformanceMetrics:
     duration_s: float
@@ -163,9 +179,11 @@ class PerformanceMetrics:
     dynamics: DynamicsMetrics
     scores: Scores
     notes: list[Note]
+    pitch_contour: list[ContourPoint] = field(default_factory=list)
 
     def to_flat_dict(self) -> dict:
-        """All metrics in one flat dict, plus ``notes`` and ``unavailable_reasons``."""
+        """All metrics in one flat dict, plus ``notes``, ``pitch_contour`` and
+        ``unavailable_reasons``."""
         flat: dict = {
             "duration_s": self.duration_s,
             "sample_rate": self.sample_rate,
@@ -178,6 +196,7 @@ class PerformanceMetrics:
             reasons.update(values.pop("reasons"))
             flat.update(values)
         flat["notes"] = [vars(note).copy() for note in self.notes]
+        flat["pitch_contour"] = [vars(point).copy() for point in self.pitch_contour]
         flat["unavailable_reasons"] = reasons
         return flat
 
@@ -290,6 +309,37 @@ def segment_notes(
                 ))
         start = i
     return notes
+
+
+def downsample_contour(track: PitchTrack, max_points: int = CONTOUR_MAX_POINTS) -> list[ContourPoint]:
+    """Shrink the frame-wise pitch track to at most ``max_points`` points for plotting.
+
+    Frames are split into consecutive buckets of ceil(frames / max_points) frames (one frame
+    per bucket if the track is already short enough). Each bucket becomes one point:
+      t          = mean frame time of the bucket
+      voiced     = at least half of its frames are voiced
+      midi_float = median fractional MIDI pitch of its voiced frames (a median keeps a
+                   bucket that straddles two notes on one of them instead of in between)
+      cents_off  = 100 · (midi_float − round(midi_float))
+    No pitch value is invented: unvoiced buckets have midi_float and cents_off None.
+    """
+    n = len(track.f0_hz)
+    if n == 0:
+        return []
+    bucket = int(np.ceil(n / max_points))
+    midi = hz_to_midi_float(track.f0_hz)
+    points: list[ContourPoint] = []
+    for start in range(0, n, bucket):
+        bucket_midi = midi[start:start + bucket]
+        voiced_midi = bucket_midi[~np.isnan(bucket_midi)]
+        t = round(float(np.mean(track.times[start:start + bucket])), 3)
+        if len(voiced_midi) * 2 >= len(bucket_midi):
+            midi_float = float(np.median(voiced_midi))
+            cents = 100.0 * (midi_float - round(midi_float))
+            points.append(ContourPoint(t, round(midi_float, 3), round(cents, 1), True))
+        else:
+            points.append(ContourPoint(t, None, None, False))
+    return points
 
 
 def compute_pitch_metrics(track: PitchTrack, notes: list[Note]) -> PitchMetrics:
@@ -577,13 +627,16 @@ def analyze_performance(y: np.ndarray, sr: int, instrument: Optional[str] = None
             "voiced_ratio", "mean_abs_cents", "median_abs_cents", "mean_signed_cents",
             "pct_frames_within_25_cents", "pitch_stability_cents", "note_count")})
         notes: list[Note] = []
+        contour: list[ContourPoint] = []
     else:
         fmin, fmax = pitch_range_for(instrument)
         track = track_pitch(y, sr, fmin, fmax)
         notes = segment_notes(track)
+        contour = downsample_contour(track, CONTOUR_MAX_POINTS)
         pitch = compute_pitch_metrics(track, notes)
         if pitch.mean_abs_cents is None:
-            notes = []  # too little pitched audio for the notes to mean anything
+            # Too little pitched audio for the notes or the curve to mean anything.
+            notes, contour = [], []
 
     if len(y) == 0:
         onsets, beats = np.array([]), np.array([])
@@ -603,4 +656,5 @@ def analyze_performance(y: np.ndarray, sr: int, instrument: Optional[str] = None
         dynamics=dynamics,
         scores=compute_scores(pitch, rhythm),
         notes=notes,
+        pitch_contour=contour,
     )

@@ -229,3 +229,47 @@ def test_dynamics_of_a_sine():
     # A constant tone has no real dynamics; the ~1 dB left comes from the zero-padded
     # RMS frames at the very start and end of the clip.
     assert result.dynamics.dynamic_range_db < 2
+
+
+# --- Pitch contour downsampling -------------------------------------------------------------
+
+def make_track(f0_hz: np.ndarray, frame_period_s: float = 0.02) -> m.PitchTrack:
+    n = len(f0_hz)
+    return m.PitchTrack(times=np.arange(n) * frame_period_s, f0_hz=np.asarray(f0_hz, dtype=float),
+                        voiced_probability=np.ones(n), frame_period_s=frame_period_s)
+
+
+def test_contour_is_downsampled_to_max_points():
+    track = make_track(np.full(4000, A4))
+    points = m.downsample_contour(track, max_points=1500)
+    assert len(points) <= 1500
+    assert len(points) == 1334  # ceil(4000 / 1500) = 3 frames per point
+    assert all(p.voiced and p.midi_float == pytest.approx(69) for p in points)
+    assert [p.t for p in points] == sorted(p.t for p in points)
+
+
+def test_short_contour_keeps_every_frame_and_reports_cents():
+    track = make_track(np.array([A4, detune(A4, 30), np.nan]))
+    points = m.downsample_contour(track, max_points=1500)
+    assert len(points) == 3
+    assert points[1].cents_off == pytest.approx(30, abs=0.1)
+    assert points[2] == m.ContourPoint(t=0.04, midi_float=None, cents_off=None, voiced=False)
+
+
+def test_contour_bucket_needs_half_voiced_frames():
+    f0 = np.array([A4, np.nan, np.nan, np.nan,    # 1 of 4 voiced -> unvoiced point
+                   A4, A4, np.nan, np.nan])       # 2 of 4 voiced -> voiced point
+    points = m.downsample_contour(make_track(f0), max_points=2)
+    assert [p.voiced for p in points] == [False, True]
+    assert points[0].midi_float is None
+
+
+def test_scale_contour_follows_the_notes(scale):
+    voiced = [p for p in scale.pitch_contour if p.voiced]
+    assert len(voiced) > 100
+    assert min(p.midi_float for p in voiced) == pytest.approx(60, abs=0.5)  # C4
+    assert max(p.midi_float for p in voiced) == pytest.approx(72, abs=0.5)  # C5
+
+
+def test_no_contour_when_pitch_is_not_measurable(clean_clicks):
+    assert clean_clicks.pitch_contour == []

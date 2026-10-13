@@ -29,6 +29,9 @@ class AudioFeatures(Base):
     pitch_stability_cents = Column(Float, nullable=True)
     note_count = Column(Integer, nullable=True)
     notes = Column(Text, nullable=True)  # JSON list of {start, end, midi, note_name, mean_cents, cents_std}
+    # JSON list of {t, midi_float, cents_off, voiced}, downsampled to <= 1500 points.
+    # Served by /result/{id}/pitch-contour, not by /result (it is large).
+    pitch_contour = Column(Text, nullable=True)
 
     # Rhythm
     onset_count = Column(Integer, nullable=True)

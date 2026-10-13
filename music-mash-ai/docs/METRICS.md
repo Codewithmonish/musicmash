@@ -102,6 +102,26 @@ synthetic scale reads ±11 cents of "wobble"; with it, ±0.5.
 *Doesn't capture:* repeated notes with no gap (legato repeated notes merge into one),
 and notes with vibrato wider than ±50 cents (they split).
 
+### Pitch contour (for the chart)
+
+**`downsample_contour`.** The frame-wise pitch track (one frame per 23 ms) is shrunk to at
+most **1500 points**, computed during analysis, stored as JSON, and served by
+`GET /api/ai/result/{id}/pitch-contour`. Frames are grouped into consecutive buckets of
+`ceil(frames / 1500)`. Each bucket becomes one point:
+
+| Field | Formula |
+|---|---|
+| `t` | mean frame time in the bucket (s) |
+| `voiced` | at least half of the bucket's frames are voiced |
+| `midi_float` | **median** fractional MIDI pitch of the voiced frames. A median keeps a bucket that spans two notes on one of them, instead of averaging to a pitch nobody sang. |
+| `cents_off` | `100 · (midi_float − round(midi_float))`, so always within ±50 |
+
+Unvoiced points have `midi_float` and `cents_off` = `null`. If pitch metrics are unavailable
+(the voiced-ratio gate in §2), the contour is empty and the endpoint returns the same reason.
+*Doesn't capture:* recordings longer than ~35 s lose time resolution (a 3-minute take
+gives one point per ~140 ms), so very fast ornaments are smoothed out of the chart. The
+metrics in §2 always use every frame.
+
 ## 4. Rhythm
 
 **`detect_onsets_and_beats`**

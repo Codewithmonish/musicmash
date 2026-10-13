@@ -2,7 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.models import AIAnalysis, AnalysisStatus, AudioFeatures, SkillPrediction
-from app.schemas import AnalysisRequest, AnalysisResponse, AnalysisStatusResponse, AnalysisResultResponse
+from app.schemas import (
+    AnalysisRequest,
+    AnalysisResponse,
+    AnalysisStatusResponse,
+    AnalysisResultResponse,
+    PitchContourResponse,
+)
+from app.services.audio import metrics as audio_metrics
 from app.services import AudioAnalysisService, SkillPredictionService
 from app.utils.logging import log
 from datetime import datetime
@@ -133,6 +140,37 @@ async def get_analysis_result(analysis_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/result/{analysis_id}/pitch-contour", response_model=PitchContourResponse)
+async def get_pitch_contour(analysis_id: int, db: Session = Depends(get_db)):
+    """
+    Get the downsampled pitch curve and segmented notes of a completed analysis.
+
+    The contour is computed and stored during analysis, so this is a plain read.
+    """
+    analysis = db.query(AIAnalysis).filter(AIAnalysis.id == analysis_id).first()
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    if analysis.status != AnalysisStatus.COMPLETED:
+        raise HTTPException(status_code=400, detail="Analysis not completed yet")
+
+    features = db.query(AudioFeatures).filter(AudioFeatures.analysis_id == analysis_id).first()
+    points = json.loads(features.pitch_contour) if features and features.pitch_contour else []
+    notes = json.loads(features.notes) if features and features.notes else []
+
+    reason = None
+    if not points:
+        reasons = json.loads(features.unavailable_reasons) if features and features.unavailable_reasons else {}
+        reason = reasons.get("mean_abs_cents", "No pitch contour was stored for this analysis.")
+
+    return PitchContourResponse(
+        analysis_id=analysis_id,
+        max_points=audio_metrics.CONTOUR_MAX_POINTS,
+        points=points,
+        notes=notes,
+        reason=reason,
+    )
+
+
 async def process_analysis(
     analysis_id: int,
     audio_url: str,
@@ -173,10 +211,12 @@ async def process_analysis(
             raise RuntimeError(f"Could not analyse the audio: {e}") from e
 
         notes = metrics.pop("notes")
+        contour = metrics.pop("pitch_contour")
         reasons = metrics.pop("unavailable_reasons")
         db.add(AudioFeatures(
             analysis_id=analysis_id,
             notes=json.dumps(notes),
+            pitch_contour=json.dumps(contour),
             unavailable_reasons=json.dumps(reasons),
             **metrics,
         ))
