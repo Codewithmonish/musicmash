@@ -74,7 +74,7 @@ scikit-learn, LangChain, LangGraph, Transformers, Pandas, Redis, Celery, Git.
 
 ## Progress log
 Update this list at the end of each phase (one line per item).
-- [ ] Phase 0 — cleanup, secrets, git setup
+- [x] Phase 0 — cleanup, secrets, git setup
 - [ ] Phase 1 — real pitch and rhythm metrics
 - [ ] Phase 2 — pitch contour visualizer
 - [ ] Phase 3 — reference-track comparison (DTW)
