@@ -208,10 +208,13 @@ async def process_analysis(
                 )
                 db.add(audio_features)
                 db.commit()
-                
+
             except Exception as e:
+                # Without audio there is nothing to report: fail the analysis visibly
+                # instead of marking it COMPLETED with empty results.
                 log.error(f"Error processing audio: {e}")
-        
+                raise RuntimeError(f"Could not analyse the audio: {e}") from e
+
         # Process video if available
         if video_url:
             try:
