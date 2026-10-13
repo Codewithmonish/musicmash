@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FiTarget, FiMusic, FiTrendingUp, FiCheckCircle, FiCpu, FiAlertTriangle, FiStar, FiInfo } from 'react-icons/fi'
+import { FiTarget, FiMusic, FiTrendingUp, FiCheckCircle, FiCpu, FiAlertTriangle, FiStar, FiActivity } from 'react-icons/fi'
 import { useParams, Link } from 'react-router-dom'
 import Navbar from '../../components/layout/Navbar'
 import AmbientBackground from '../../components/ui/AmbientBackground'
@@ -8,6 +8,8 @@ import EqualizerBars from '../../components/ui/EqualizerBars'
 import RadialProgress from '../../components/ui/RadialProgress'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
+import PitchContourChart, { describeCents } from '../../components/ai/PitchContourChart'
+import StatCard from '../../components/ai/StatCard'
 import api from '../../services/api'
 
 // Every number on this page is measured by the AI service (music-mash-ai/docs/METRICS.md).
@@ -19,31 +21,31 @@ const METRIC_GROUPS = [
   {
     title: 'Pitch',
     metrics: [
-      { key: 'voiced_ratio', label: 'Pitched audio', format: (v) => `${Math.round(v * 100)}%`, hint: 'Share of the take with a detectable pitch' },
-      { key: 'mean_abs_cents', label: 'Average deviation', format: (v) => `${v.toFixed(1)} cents`, hint: 'From the nearest semitone (A4 = 440 Hz)' },
-      { key: 'median_abs_cents', label: 'Median deviation', format: (v) => `${v.toFixed(1)} cents` },
-      { key: 'mean_signed_cents', label: 'Sharp / flat tendency', format: (v) => `${signed(v, 1)} cents`, hint: '+ is sharp, − is flat' },
-      { key: 'pct_frames_within_25_cents', label: 'Within ±25 cents', format: (v) => `${v.toFixed(0)}%` },
-      { key: 'pitch_stability_cents', label: 'Wobble on held notes', format: (v) => `±${v.toFixed(1)} cents`, hint: 'Lower is steadier; vibrato counts too' },
-      { key: 'note_count', label: 'Notes detected', format: (v) => `${v}` },
+      { key: 'mean_abs_cents', label: 'Average deviation', unit: '¢', format: (v) => v.toFixed(1), hint: 'From the nearest semitone' },
+      { key: 'median_abs_cents', label: 'Median deviation', unit: '¢', format: (v) => v.toFixed(1), hint: 'Ignores most slides between notes' },
+      { key: 'mean_signed_cents', label: 'Sharp / flat', unit: '¢', format: (v) => signed(v, 1), hint: '+ is sharp, − is flat' },
+      { key: 'pct_frames_within_25_cents', label: 'Within ±25¢', unit: '%', format: (v) => v.toFixed(0) },
+      { key: 'pitch_stability_cents', label: 'Wobble on held notes', unit: '¢', format: (v) => `±${v.toFixed(1)}`, hint: 'Lower is steadier; vibrato counts too' },
+      { key: 'voiced_ratio', label: 'Pitched audio', unit: '%', format: (v) => Math.round(v * 100), hint: 'Share of the take with a pitch' },
+      { key: 'note_count', label: 'Notes detected', format: (v) => v },
     ],
   },
   {
     title: 'Rhythm',
     metrics: [
-      { key: 'tempo_bpm', label: 'Tempo', format: (v) => `${v.toFixed(1)} BPM` },
-      { key: 'mean_abs_timing_error_ms', label: 'Average timing error', format: (v) => `${v.toFixed(1)} ms`, hint: 'Distance of each onset from a steady beat grid' },
-      { key: 'pct_onsets_within_30ms', label: 'Onsets within ±30 ms', format: (v) => `${v.toFixed(0)}%` },
-      { key: 'tempo_stability_cv', label: 'Beat-length variation', format: (v) => `${(v * 100).toFixed(1)}%`, hint: 'Lower is a steadier pulse' },
-      { key: 'tempo_drift_bpm', label: 'Tempo drift', format: (v) => `${signed(v, 1)} BPM`, hint: 'Second half vs first half; + means rushing' },
-      { key: 'onset_count', label: 'Onsets detected', format: (v) => `${v}` },
+      { key: 'tempo_bpm', label: 'Tempo', unit: 'BPM', format: (v) => v.toFixed(1) },
+      { key: 'mean_abs_timing_error_ms', label: 'Average timing error', unit: 'ms', format: (v) => v.toFixed(1), hint: 'Onsets vs a steady beat grid' },
+      { key: 'pct_onsets_within_30ms', label: 'Onsets within ±30 ms', unit: '%', format: (v) => v.toFixed(0) },
+      { key: 'tempo_stability_cv', label: 'Beat-length variation', unit: '%', format: (v) => (v * 100).toFixed(1), hint: 'Lower is a steadier pulse' },
+      { key: 'tempo_drift_bpm', label: 'Tempo drift', unit: 'BPM', format: (v) => signed(v, 1), hint: 'Second half vs first; + is rushing' },
+      { key: 'onset_count', label: 'Onsets detected', format: (v) => v },
     ],
   },
   {
     title: 'Dynamics',
     metrics: [
-      { key: 'mean_rms_dbfs', label: 'Average level', format: (v) => `${v.toFixed(1)} dBFS` },
-      { key: 'dynamic_range_db', label: 'Dynamic range', format: (v) => `${v.toFixed(1)} dB`, hint: 'Loud (95th pct) minus quiet (5th pct)' },
+      { key: 'mean_rms_dbfs', label: 'Average level', unit: 'dBFS', format: (v) => v.toFixed(1) },
+      { key: 'dynamic_range_db', label: 'Dynamic range', unit: 'dB', format: (v) => v.toFixed(1), hint: 'Loud (95th pct) minus quiet (5th pct)' },
     ],
   },
 ]
@@ -90,9 +92,66 @@ const FeedbackList = ({ title, icon, items, emptyText }) => (
   </div>
 )
 
+const PitchContourSection = ({ contour, error }) => {
+  let body
+  if (error) {
+    body = <NotAvailable reason={error} />
+  } else if (!contour || contour.points.length === 0) {
+    body = <NotAvailable reason={contour?.reason} />
+  } else {
+    body = (
+      <>
+        <PitchContourChart points={contour.points} notes={contour.notes} />
+        {contour.notes.length > 0 && (
+          <details className="mt-4 text-xs text-muted">
+            <summary className="cursor-pointer select-none">Show detected notes as a table</summary>
+            <table className="mt-2 w-full text-left">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className="py-1 pr-4 font-medium">Start</th>
+                  <th className="py-1 pr-4 font-medium">End</th>
+                  <th className="py-1 pr-4 font-medium">Note</th>
+                  <th className="py-1 font-medium">Average tuning</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contour.notes.map((note) => (
+                  <tr key={`${note.start}-${note.midi}`} className="border-b border-white/5">
+                    <td className="py-1 pr-4">{note.start.toFixed(2)} s</td>
+                    <td className="py-1 pr-4">{note.end.toFixed(2)} s</td>
+                    <td className="py-1 pr-4 text-white">{note.note_name}</td>
+                    <td className="py-1">{describeCents(note.mean_cents)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </details>
+        )}
+      </>
+    )
+  }
+
+  return (
+    <Card hover={false} className="border-white/10 p-6 mb-8">
+      <h3 className="font-display text-xl font-bold text-white mb-1 flex items-center gap-2">
+        <FiActivity className="text-accent" /> Your pitch curve
+      </h3>
+      <p className="text-xs text-muted mb-4 max-w-3xl">
+        The line is the pitch you played over time; the light bars are the notes it settled on.
+        Tuning is measured in <strong className="text-white">cents</strong>: 100 cents = 1 semitone
+        (one piano key), so 50 cents off is exactly halfway to the next note. Hover the line to see
+        the note and how sharp or flat it was.
+      </p>
+      {body}
+    </Card>
+  )
+}
+
 const AIAnalysisPage = () => {
   const { id } = useParams()
   const [data, setData] = useState(null)
+  const [contour, setContour] = useState(null)
+  const [contourError, setContourError] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -100,18 +159,29 @@ const AIAnalysisPage = () => {
     fetchAIResult()
   }, [id])
 
+  const errorMessage = (err, fallback) =>
+    err.response?.data?.detail || err.response?.data?.message || fallback
+
   const fetchAIResult = async () => {
     setLoading(true)
     setError(null)
-    try {
-      const response = await api.get(`/api/ai/result/${id}`)
-      setData(response.data)
-    } catch (err) {
-      console.error('Failed to fetch AI analysis:', err)
-      setError(err.response?.data?.detail || err.response?.data?.message || 'The analysis result could not be loaded.')
-    } finally {
-      setLoading(false)
+    setContourError(null)
+    const [result, contourResult] = await Promise.allSettled([
+      api.get(`/api/ai/result/${id}`),
+      api.get(`/api/ai/result/${id}/pitch-contour`),
+    ])
+    if (result.status === 'fulfilled') {
+      setData(result.value.data)
+    } else {
+      console.error('Failed to fetch AI analysis:', result.reason)
+      setError(errorMessage(result.reason, 'The analysis result could not be loaded.'))
     }
+    if (contourResult.status === 'fulfilled') {
+      setContour(contourResult.value.data)
+    } else {
+      setContourError(errorMessage(contourResult.reason, 'The pitch curve could not be loaded.'))
+    }
+    setLoading(false)
   }
 
   if (loading) {
@@ -193,7 +263,7 @@ const AIAnalysisPage = () => {
             score={skill.pitch_score}
             reason={reasons.pitch_score}
             barClass="bg-accent"
-            detail={features.mean_abs_cents != null && `100 − 2 × ${features.mean_abs_cents.toFixed(1)} cents average deviation`}
+            detail={features.mean_abs_cents != null && `100 − 2 × ${features.mean_abs_cents.toFixed(1)}¢ average deviation`}
           />
           <ScoreCard
             label="Rhythm score"
@@ -221,6 +291,9 @@ const AIAnalysisPage = () => {
           </Card>
         </div>
 
+        {/* Pitch Contour */}
+        <PitchContourSection contour={contour} error={contourError} />
+
         {/* Coach Feedback */}
         <Card hover={false} className="border-white/10 p-6 mb-8">
           <h3 className="font-display text-xl font-bold text-white mb-4 flex items-center gap-2">
@@ -241,35 +314,23 @@ const AIAnalysisPage = () => {
         </Card>
 
         {/* Measured Metrics */}
-        <Card hover={false} className="border-white/10 p-6">
-          <h3 className="font-display text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <FiInfo className="text-accent" /> All measurements
-          </h3>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {METRIC_GROUPS.map((group) => (
-              <div key={group.title}>
-                <h4 className="text-xs font-mono text-muted uppercase mb-2">{group.title}</h4>
-                <dl className="space-y-2">
-                  {group.metrics.map(({ key, label, format, hint }) => (
-                    <div key={key} className="p-3 rounded-xl bg-white/5 border border-white/5">
-                      <div className="flex items-baseline justify-between gap-3">
-                        <dt className="text-xs text-muted">{label}</dt>
-                        <dd className="text-sm font-semibold text-white text-right">
-                          {features[key] == null ? 'Not available' : format(features[key])}
-                        </dd>
-                      </div>
-                      {features[key] == null && reasons[key] ? (
-                        <p className="text-[11px] text-muted mt-1">{reasons[key]}</p>
-                      ) : (
-                        hint && <p className="text-[11px] text-muted/70 mt-1">{hint}</p>
-                      )}
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            ))}
-          </div>
-        </Card>
+        {METRIC_GROUPS.map((group) => (
+          <section key={group.title} className="mb-6">
+            <h3 className="text-xs font-mono text-muted uppercase mb-3">{group.title}</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {group.metrics.map(({ key, label, unit, format, hint }) => (
+                <StatCard
+                  key={key}
+                  label={label}
+                  value={features[key] == null ? null : format(features[key])}
+                  unit={unit}
+                  hint={hint}
+                  reason={reasons[key]}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
       </div>
     </div>
   )

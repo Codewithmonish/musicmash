@@ -1,0 +1,168 @@
+import { useMemo } from 'react'
+import {
+  ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceArea, Brush,
+} from 'recharts'
+
+// Pitch curve over time, coloured by how far each point is from the nearest note.
+// Data comes from GET /api/ai/result/{id}/pitch-contour (see music-mash-ai/docs/METRICS.md).
+
+export const BANDS = [
+  { key: 'inTune', label: 'Within ±25¢', color: '#0ca30c', test: (c) => Math.abs(c) <= 25 },
+  { key: 'near', label: '25–50¢ off', color: '#fab219', test: (c) => Math.abs(c) <= 50 },
+  { key: 'off', label: 'More than 50¢ off', color: '#d03b3b', test: () => true },
+]
+
+const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+export const midiToNoteName = (midi) => {
+  const rounded = Math.round(midi)
+  return `${NOTE_NAMES[((rounded % 12) + 12) % 12]}${Math.floor(rounded / 12) - 1}`
+}
+
+const bandOf = (cents) => BANDS.find((band) => band.test(cents)).key
+
+export const describeCents = (cents) => {
+  const rounded = Math.round(cents)
+  if (rounded === 0) return 'in tune'
+  return `${rounded > 0 ? '+' : ''}${rounded}¢ ${rounded > 0 ? 'sharp' : 'flat'}`
+}
+
+/**
+ * One row per contour point with a value in exactly the series of its colour band.
+ * When the band changes, the previous point is also copied into the new band's series,
+ * so the coloured segments join up instead of leaving a gap. Unvoiced points are null
+ * in every series, which breaks the line where there is no pitch.
+ */
+const toChartRows = (points) => points.map((point) => {
+  const row = { ...point, inTune: null, near: null, off: null }
+  if (!point.voiced) return row
+  row[bandOf(point.cents_off)] = point.midi_float
+  return row
+}).map((row, i, rows) => {
+  const next = rows[i + 1]
+  if (row.voiced && next?.voiced) {
+    const nextBand = bandOf(next.cents_off)
+    if (nextBand !== bandOf(row.cents_off)) return { ...row, [nextBand]: row.midi_float }
+  }
+  return row
+})
+
+// Y ticks on note names: every semitone for small ranges, natural notes only for wider
+// ranges, and only the Cs for very wide ones, so labels never collide.
+const noteTicks = (low, high) => {
+  const all = Array.from({ length: high - low + 1 }, (_, i) => low + i)
+  const span = high - low
+  if (span <= 14) return all
+  if (span <= 28) return all.filter((m) => !NOTE_NAMES[m % 12].includes('#'))
+  return all.filter((m) => m % 12 === 0)
+}
+
+const ContourTooltip = ({ active, payload }) => {
+  if (!active || !payload?.length) return null
+  const point = payload[0].payload
+  return (
+    <div className="rounded-lg border border-white/10 bg-[#0d0d13]/95 px-3 py-2 text-xs shadow-xl">
+      <div className="text-muted">{point.t.toFixed(2)} s</div>
+      <div className="font-semibold text-white">
+        {point.voiced ? `${midiToNoteName(point.midi_float)} · ${describeCents(point.cents_off)}` : 'No pitch'}
+      </div>
+    </div>
+  )
+}
+
+const PitchContourChart = ({ points, notes, height = 340 }) => {
+  const rows = useMemo(() => toChartRows(points), [points])
+
+  const [low, high] = useMemo(() => {
+    const pitches = [
+      ...points.filter((p) => p.voiced).map((p) => p.midi_float),
+      ...notes.map((n) => n.midi),
+    ]
+    return [Math.floor(Math.min(...pitches)) - 1, Math.ceil(Math.max(...pitches)) + 1]
+  }, [points, notes])
+
+  const usedBands = BANDS.filter((band) => rows.some((row) => row[band.key] != null))
+
+  return (
+    <div>
+      <ResponsiveContainer width="100%" height={height}>
+        <ComposedChart data={rows} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
+          <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" />
+          {notes.map((note) => (
+            <ReferenceArea
+              key={`${note.start}-${note.midi}`}
+              x1={note.start}
+              x2={note.end}
+              y1={note.midi - 0.25}
+              y2={note.midi + 0.25}
+              fill="#ffffff"
+              fillOpacity={0.12}
+              stroke="none"
+              radius={4}
+              ifOverflow="hidden"
+            />
+          ))}
+          <XAxis
+            dataKey="t"
+            type="number"
+            domain={['dataMin', 'dataMax']}
+            tickFormatter={(t) => `${t.toFixed(1)}s`}
+            stroke="rgba(255,255,255,0.35)"
+            tick={{ fontSize: 11 }}
+          />
+          <YAxis
+            type="number"
+            domain={[low, high]}
+            ticks={noteTicks(low, high)}
+            tickFormatter={midiToNoteName}
+            stroke="rgba(255,255,255,0.35)"
+            tick={{ fontSize: 11 }}
+            width={44}
+            allowDataOverflow
+          />
+          <Tooltip content={<ContourTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.3)' }} isAnimationActive={false} />
+          {usedBands.map((band) => (
+            <Line
+              key={band.key}
+              dataKey={band.key}
+              name={band.label}
+              type="linear"
+              stroke={band.color}
+              strokeWidth={2}
+              dot={false}
+              activeDot={false}
+              connectNulls={false}
+              isAnimationActive={false}
+            />
+          ))}
+          {rows.length > 1 && (
+            <Brush
+              dataKey="t"
+              height={24}
+              travellerWidth={8}
+              stroke="rgba(255,255,255,0.35)"
+              fill="rgba(255,255,255,0.04)"
+              tickFormatter={(t) => `${t.toFixed(1)}s`}
+            />
+          )}
+        </ComposedChart>
+      </ResponsiveContainer>
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted">
+        {usedBands.map((band) => (
+          <span key={band.key} className="flex items-center gap-2">
+            <span className="inline-block h-0.5 w-5 rounded" style={{ backgroundColor: band.color }} />
+            {band.label}
+          </span>
+        ))}
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-2 w-5 rounded bg-white/20" />
+          Detected note
+        </span>
+        <span>Drag the handles under the chart to zoom.</span>
+      </div>
+    </div>
+  )
+}
+
+export default PitchContourChart
