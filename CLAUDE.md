@@ -76,7 +76,7 @@ scikit-learn, LangChain, LangGraph, Transformers, Pandas, Redis, Celery, Git.
 Update this list at the end of each phase (one line per item).
 - [x] Phase 0 — cleanup, secrets, git setup
 - [x] Phase 1 — real pitch and rhythm metrics
-- [ ] Phase 2 — pitch contour visualizer
+- [x] Phase 2 — pitch contour visualizer
 - [ ] Phase 3 — reference-track comparison (DTW)
 - [ ] Phase 4 — RAG AI coach
 - [ ] Phase 5 — instrument auto-detection model
