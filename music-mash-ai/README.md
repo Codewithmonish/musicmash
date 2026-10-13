@@ -8,10 +8,14 @@ This is a standalone Python FastAPI service that processes music performances us
 
 ## Features
 
-- **Audio Analysis**: Extract features from audio files using librosa
-- **Video Analysis**: Process video frames using OpenCV
-- **Skill Prediction**: Predict user skill levels based on performance
-- **Authenticity Detection**: Detect potential cheating or pre-recorded performances
+- **Measured audio metrics**: pitch accuracy in cents (pYIN), note segmentation, timing error
+  against a steady beat grid, tempo stability and drift, dynamics. Every formula, unit and
+  limitation is documented in [docs/METRICS.md](docs/METRICS.md).
+- **Transparent scores**: 0-100 scores that are fixed linear mappings of one metric each.
+  A metric that can't be measured is `null` with a reason, never a guess.
+- **Skill summary**: strengths, weaknesses and drills triggered by documented thresholds; a
+  rule-based level (a trained model replaces it in Phase 6)
+- **Video**: frame and metadata extraction with OpenCV (no video-based scoring yet)
 - **Practice Recommendations**: Generate personalized practice suggestions
 - **Background Processing**: Asynchronous analysis using FastAPI BackgroundTasks
 - **Model Management**: Infrastructure for loading and versioning ML models
@@ -24,7 +28,6 @@ This is a standalone Python FastAPI service that processes music performances us
 - **SQLAlchemy**: ORM
 - **Librosa**: Audio processing
 - **OpenCV**: Video processing
-- **MediaPipe**: (Future) Pose/hand detection
 - **PyTorch/TensorFlow**: (Future) ML model support
 - **Redis**: (Future) Celery task queue
 - **Docker**: Containerization
@@ -44,7 +47,6 @@ music-mash-ai/
 │   ├── models/           # SQLAlchemy models
 │   │   ├── ai_analysis.py
 │   │   ├── audio_features.py
-│   │   ├── authenticity_result.py
 │   │   ├── skill_prediction.py
 │   │   ├── practice_recommendation.py
 │   │   ├── model_version.py
@@ -57,17 +59,20 @@ music-mash-ai/
 │   │   ├── audio_analysis_service.py
 │   │   ├── video_analysis_service.py
 │   │   ├── recommendation_service.py
-│   │   ├── cheating_detection_service.py
 │   │   ├── skill_prediction_service.py
 │   │   ├── model_manager.py
 │   │   ├── audio/
-│   │   │   └── audio_preprocessing.py
+│   │   │   ├── audio_preprocessing.py   # load mono 22.05 kHz, trim edge silence
+│   │   │   └── metrics.py               # pure measurement functions (array in, numbers out)
 │   │   ├── vision/
 │   │   │   └── video_preprocessing.py
 │   │   └── __init__.py
 │   └── utils/            # Utilities
 │       ├── logging.py
 │       └── exceptions.py
+├── docs/
+│   └── METRICS.md        # How every metric and score is computed
+├── tests/                # pytest; all test audio is generated in code
 ├── logs/                 # Log files
 ├── models/               # ML model files
 ├── uploads/              # Uploaded files
@@ -178,53 +183,50 @@ Get the status of an analysis.
 ```
 
 ### GET /api/ai/result/{analysis_id}
-Get the complete result of an analysis.
+Get the complete result of an analysis (abridged below; see `/docs` for every field and
+[docs/METRICS.md](docs/METRICS.md) for the formulas).
 
 **Response:**
 ```json
 {
-  "analysis": {
-    "id": 1,
-    "performance_id": 1,
-    "status": "COMPLETED",
-    "processing_started_at": "2024-01-15T10:30:05",
-    "processing_completed_at": "2024-01-15T10:30:30",
-    "error_message": null
-  },
+  "analysis": { "id": 1, "performance_id": 1, "status": "COMPLETED", "error_message": null },
   "audio_features": {
-    "id": 1,
-    "analysis_id": 1,
-    "duration": 120.5,
-    "tempo": 120.0,
-    "key": "C",
-    "scale": "major"
-  },
-  "authenticity_result": {
-    "id": 1,
-    "analysis_id": 1,
-    "authenticity_score": 0.85,
-    "confidence": 0.9,
-    "is_live_performance": 1
+    "duration_s": 12.4,
+    "voiced_ratio": 0.81,
+    "mean_abs_cents": 11.6,
+    "mean_signed_cents": 4.2,
+    "pitch_stability_cents": 6.3,
+    "notes": [{ "start": 0.42, "end": 0.91, "midi": 69, "note_name": "A4", "mean_cents": 3.1, "cents_std": 2.0 }],
+    "tempo_bpm": null,
+    "mean_abs_timing_error_ms": null,
+    "pitch_score": 76.8,
+    "rhythm_score": null,
+    "overall_score": 76.8,
+    "unavailable_reasons": {
+      "tempo_bpm": "Only 5 note onsets were detected (at least 8 are needed).",
+      "rhythm_score": "Only 5 note onsets were detected (at least 8 are needed)."
+    }
   },
   "skill_prediction": {
-    "id": 1,
-    "analysis_id": 1,
-    "predicted_level": "INTERMEDIATE",
-    "confidence": 0.75,
-    "pitch_accuracy": 0.7,
-    "rhythm_accuracy": 0.75
+    "predicted_level": "ADVANCED",
+    "level_basis": "Rule-based: overall score 77/100 → ADVANCED (...)",
+    "strengths": [],
+    "weaknesses": [],
+    "improvement_areas": []
   }
 }
 ```
+
+If the audio can't be loaded or analysed, the analysis status becomes `FAILED` with the
+reason in `error_message`.
 
 ## Database Schema
 
 ### Tables
 
 - **ai_analyses**: Main analysis records
-- **audio_features**: Extracted audio features
-- **authenticity_results**: Authenticity analysis results
-- **skill_predictions**: Skill level predictions
+- **audio_features**: Measured metrics, segmented notes and reasons for any null metric
+- **skill_predictions**: Scores, rule-based level and threshold-based feedback
 - **practice_recommendations**: Generated recommendations
 - **model_versions**: Model version tracking
 
@@ -255,8 +257,12 @@ Logs are stored in the `logs/` directory:
 
 Run unit tests:
 ```bash
-pytest tests/
+python -m pytest tests/
 ```
+
+Test audio (sines, scales, click tracks, noise) is generated in code, never downloaded.
+The first librosa call in a fresh process takes ~40 s while numba compiles; the full suite
+takes about 2-3 minutes.
 
 ## Development
 
@@ -282,7 +288,6 @@ model = manager.load_model("model_name", "version")
 ## Future Enhancements
 
 - [ ] Implement actual ML models for skill prediction
-- [ ] Add MediaPipe for pose/hand detection
 - [ ] Integrate Celery for distributed task processing
 - [ ] Add real-time streaming analysis
 - [ ] Implement model training pipeline
@@ -295,7 +300,9 @@ model = manager.load_model("model_name", "version")
 Change the port in `.env` or `docker-compose.yml`
 
 ### Database Errors
-Delete `music_mash_ai.db` and restart the service to reinitialize
+Delete `music_mash_ai.db` and restart the service to reinitialize. Do this after pulling
+schema changes too (e.g. Phase 1 replaced the `audio_features` / `skill_predictions` columns):
+tables are created with `create_all`, which never alters an existing table.
 
 ### Import Errors
 Ensure all dependencies are installed: `pip install -r requirements.txt`
