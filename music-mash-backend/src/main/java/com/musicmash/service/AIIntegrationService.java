@@ -65,4 +65,15 @@ public class AIIntegrationService {
             throw new RuntimeException("Failed to get analysis result: " + e.getMessage(), e);
         }
     }
+
+    public String getPitchContour(Long analysisId) {
+        try {
+            String url = aiServiceUrl + "/api/ai/result/" + analysisId + "/pitch-contour";
+
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            return response.getBody();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get pitch contour: " + e.getMessage(), e);
+        }
+    }
 }

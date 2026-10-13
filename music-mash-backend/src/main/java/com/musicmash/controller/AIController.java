@@ -61,4 +61,14 @@ public class AIController {
             throw new RuntimeException("Failed to get analysis result: " + e.getMessage());
         }
     }
+
+    @GetMapping("/result/{analysisId}/pitch-contour")
+    public ResponseEntity<String> getPitchContour(@PathVariable Long analysisId) {
+        try {
+            String response = aiIntegrationService.getPitchContour(analysisId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get pitch contour: " + e.getMessage());
+        }
+    }
 }
