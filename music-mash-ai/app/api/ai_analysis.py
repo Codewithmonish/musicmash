@@ -1,15 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from typing import Dict, Any
 from app.database.database import get_db
 from app.models import AIAnalysis, AnalysisStatus, AudioFeatures, SkillPrediction
 from app.schemas import AnalysisRequest, AnalysisResponse, AnalysisStatusResponse, AnalysisResultResponse
-from app.services import (
-    AudioAnalysisService,
-    VideoAnalysisService,
-    SkillPredictionService,
-    RecommendationService
-)
+from app.services import AudioAnalysisService, SkillPredictionService
 from app.utils.logging import log
 from datetime import datetime
 import json
@@ -164,89 +158,43 @@ async def process_analysis(
         analysis.processing_started_at = datetime.utcnow()
         db.commit()
         
-        # Initialize services
-        audio_service = AudioAnalysisService()
-        video_service = VideoAnalysisService()
-        skill_service = SkillPredictionService()
-        
-        audio_features_data = None
-        video_features_data = None
-        
-        # Process audio if available
-        if audio_url:
-            try:
-                log.info(f"Processing audio for analysis {analysis_id}")
-                audio_features_data = audio_service.analyze_audio(audio_url)
-                
-                # Save audio features to database
-                audio_features = AudioFeatures(
-                    analysis_id=analysis_id,
-                    duration=audio_features_data.get('duration'),
-                    sample_rate=audio_features_data.get('sample_rate'),
-                    spectral_centroid_mean=audio_features_data.get('spectral_centroid_mean'),
-                    spectral_centroid_std=audio_features_data.get('spectral_centroid_std'),
-                    spectral_bandwidth_mean=audio_features_data.get('spectral_bandwidth_mean'),
-                    spectral_bandwidth_std=audio_features_data.get('spectral_bandwidth_std'),
-                    spectral_rolloff_mean=audio_features_data.get('spectral_rolloff_mean'),
-                    spectral_rolloff_std=audio_features_data.get('spectral_rolloff_std'),
-                    mfcc_mean=json.dumps(audio_features_data.get('mfcc_mean', [])),
-                    mfcc_std=json.dumps(audio_features_data.get('mfcc_std', [])),
-                    chroma_mean=json.dumps(audio_features_data.get('chroma_mean', [])),
-                    chroma_std=json.dumps(audio_features_data.get('chroma_std', [])),
-                    tempo=audio_features_data.get('tempo'),
-                    tempo_confidence=audio_features_data.get('tempo_confidence'),
-                    rms_mean=audio_features_data.get('rms_mean'),
-                    rms_std=audio_features_data.get('rms_std'),
-                    zero_crossing_rate_mean=audio_features_data.get('zero_crossing_rate_mean'),
-                    zero_crossing_rate_std=audio_features_data.get('zero_crossing_rate_std'),
-                    key=audio_features_data.get('key'),
-                    scale=audio_features_data.get('scale')
-                )
-                db.add(audio_features)
-                db.commit()
+        # Audio is measured from the audio file, or from the video's soundtrack if only a
+        # video was uploaded. Without either there is nothing to measure.
+        source_url = audio_url or video_url
+        if not source_url:
+            raise ValueError("No audio or video file was provided, so there is nothing to analyse.")
 
-            except Exception as e:
-                # Without audio there is nothing to report: fail the analysis visibly
-                # instead of marking it COMPLETED with empty results.
-                log.error(f"Error processing audio: {e}")
-                raise RuntimeError(f"Could not analyse the audio: {e}") from e
+        try:
+            log.info(f"Measuring audio for analysis {analysis_id}")
+            metrics = AudioAnalysisService().analyze_audio(source_url, instrument)
+        except Exception as e:
+            # Fail the analysis visibly instead of marking it COMPLETED with empty results.
+            log.error(f"Error processing audio: {e}")
+            raise RuntimeError(f"Could not analyse the audio: {e}") from e
 
-        # Process video if available
-        if video_url:
-            try:
-                log.info(f"Processing video for analysis {analysis_id}")
-                video_features_data = video_service.analyze_video(video_url)
-                
-            except Exception as e:
-                log.error(f"Error processing video: {e}")
-        
-        # Perform skill prediction
-        if audio_features_data:
-            try:
-                log.info(f"Performing skill prediction for analysis {analysis_id}")
-                skill_data = skill_service.predict_skill_level(audio_features_data, video_features_data)
-                
-                # Save skill prediction
-                skill_prediction = SkillPrediction(
-                    analysis_id=analysis_id,
-                    predicted_level=skill_data.get('predicted_level'),
-                    confidence=skill_data.get('confidence'),
-                    pitch_accuracy=skill_data.get('pitch_accuracy'),
-                    rhythm_accuracy=skill_data.get('rhythm_accuracy'),
-                    timing_precision=skill_data.get('timing_precision'),
-                    technique_score=skill_data.get('technique_score'),
-                    musicality_score=skill_data.get('musicality_score'),
-                    percentile_rank=skill_data.get('percentile_rank'),
-                    strengths=json.dumps(skill_data.get('strengths', [])),
-                    weaknesses=json.dumps(skill_data.get('weaknesses', [])),
-                    improvement_areas=json.dumps(skill_data.get('improvement_areas', []))
-                )
-                db.add(skill_prediction)
-                db.commit()
-                
-            except Exception as e:
-                log.error(f"Error in skill prediction: {e}")
-        
+        notes = metrics.pop("notes")
+        reasons = metrics.pop("unavailable_reasons")
+        db.add(AudioFeatures(
+            analysis_id=analysis_id,
+            notes=json.dumps(notes),
+            unavailable_reasons=json.dumps(reasons),
+            **metrics,
+        ))
+
+        skill = SkillPredictionService().predict_skill_level(metrics)
+        db.add(SkillPrediction(
+            analysis_id=analysis_id,
+            predicted_level=skill["predicted_level"],
+            level_basis=skill["level_basis"],
+            pitch_score=skill["pitch_score"],
+            rhythm_score=skill["rhythm_score"],
+            overall_score=skill["overall_score"],
+            strengths=json.dumps(skill["strengths"]),
+            weaknesses=json.dumps(skill["weaknesses"]),
+            improvement_areas=json.dumps(skill["improvement_areas"]),
+        ))
+        db.commit()
+
         # Update status to COMPLETED
         analysis.status = AnalysisStatus.COMPLETED
         analysis.processing_completed_at = datetime.utcnow()
@@ -257,12 +205,13 @@ async def process_analysis(
     except Exception as e:
         log.error(f"Error processing analysis {analysis_id}: {e}")
         
-        # Update status to FAILED
+        # Update status to FAILED (discarding any partially added results first)
         try:
+            db.rollback()
             analysis = db.query(AIAnalysis).filter(AIAnalysis.id == analysis_id).first()
             if analysis:
                 analysis.status = AnalysisStatus.FAILED
                 analysis.error_message = str(e)
                 db.commit()
-        except:
-            pass
+        except Exception:
+            db.rollback()
