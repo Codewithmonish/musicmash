@@ -96,20 +96,31 @@ def test_scores_are_documented_linear_mappings():
     assert m.rhythm_score(80) == 0
 
 
-def test_fit_beat_grid_recovers_period_and_errors():
-    onsets = beat_times(100, 12)
-    onsets[5] += 0.020  # one onset 20 ms late
-    grid = m.fit_beat_grid(onsets, tempo_bpm=98)  # deliberately wrong starting tempo
-    assert m.grid_tempo_bpm(grid.period_s) == pytest.approx(100, abs=0.5)
-    assert np.argmax(grid.residuals_s) == 5
-    assert grid.residuals_s[5] * 1000 == pytest.approx(20, abs=3)
+def test_fit_beat_grid_measures_onsets_against_steady_beats():
+    beats = beat_times(100, 12)
+    onsets = beats.copy()
+    onsets[5] += 0.020                                    # one onset 20 ms late
+    onsets = np.sort(np.append(onsets, beats[3] + 0.15))  # plus an on-grid sixteenth
+    grid = m.fit_beat_grid(beats, onsets)
+    assert 60 / (grid.period_s * 4) == pytest.approx(100)
+    assert np.max(grid.residuals_s) * 1000 == pytest.approx(20, abs=1)
+    assert np.sum(np.abs(grid.residuals_s) > 0.001) == 1  # every other onset is on the grid
+
+
+def test_fit_beat_grid_removes_constant_detector_offset():
+    beats = beat_times(120, 8)
+    grid = m.fit_beat_grid(beats, beats - 0.030)  # onsets consistently 30 ms before beats
+    np.testing.assert_allclose(grid.residuals_s, 0, atol=1e-9)
 
 
 def test_tempo_drift_detects_rushing():
-    first = 0.5 + np.arange(8) * 0.6           # 100 BPM
-    second = first[-1] + 0.5 + np.arange(8) * 0.5  # 120 BPM
-    drift = m.tempo_drift_bpm(np.concatenate([first, second]), tempo_bpm=110)
-    assert drift == pytest.approx(20, abs=2)
+    first = 0.5 + np.arange(8) * 60 / 100              # 100 BPM
+    second = first[-1] + np.arange(1, 9) * 60 / 110    # then 110 BPM
+    assert m.tempo_drift_bpm(np.concatenate([first, second])) == pytest.approx(10, abs=1)
+
+
+def test_tempo_drift_of_steady_beats_is_zero():
+    assert m.tempo_drift_bpm(beat_times(120, 16)) == pytest.approx(0, abs=1e-6)
 
 
 # --- Pitch on generated audio -------------------------------------------------------------
@@ -137,6 +148,8 @@ def test_c_major_scale_is_segmented_into_8_named_notes(scale):
     for note in scale.notes:
         assert note.end - note.start == pytest.approx(0.4, abs=0.1)
         assert abs(note.mean_cents) < 5
+    # Pure sines are perfectly steady; transition frames must not count as wobble.
+    assert scale.pitch.pitch_stability_cents < 3
 
 
 # --- Rhythm on generated audio ------------------------------------------------------------
@@ -153,9 +166,12 @@ def test_clean_click_track_tempo_and_timing(clean_clicks):
 def test_jittered_clicks_have_clearly_higher_timing_error(clean_clicks, jittered_clicks):
     clean = clean_clicks.rhythm.mean_abs_timing_error_ms
     jittered = jittered_clicks.rhythm.mean_abs_timing_error_ms
-    assert jittered > 15
+    assert jittered == pytest.approx(20, abs=6)  # uniform ±40 ms has a mean |error| of 20 ms
     assert jittered > 3 * clean
     assert jittered_clicks.scores.rhythm_score < clean_clicks.scores.rhythm_score
+    # Random jitter is not a tempo change: the fitted tempo and drift must stay put.
+    assert jittered_clicks.rhythm.tempo_bpm == pytest.approx(120, abs=3)
+    assert abs(jittered_clicks.rhythm.tempo_drift_bpm) < 3
 
 
 def test_click_track_has_no_pitch_metrics(clean_clicks):

@@ -37,13 +37,16 @@ MIN_VOICED_PROBABILITY = 0.5 # pYIN voiced probability needed for a frame to cou
 MIN_VOICED_RATIO = 0.2       # below this, pitch metrics are not reported
 MIN_NOTE_DURATION_S = 0.08   # shorter pitch runs are treated as transitions, not notes
 SUSTAINED_NOTE_S = 0.2       # notes at least this long count towards pitch stability
+NOTE_EDGE_FRAMES = 2         # frames dropped at each end of a note for its cents stats
+                             # (half a 2048-sample window: those frames hear the neighbour)
 IN_TUNE_CENTS = 25.0         # threshold for pct_frames_within_25_cents
 
 GRID_SUBDIVISIONS = 4        # beat grid resolution: 4 = sixteenth notes
 ON_TIME_MS = 30.0            # threshold for pct_onsets_within_30ms
 MIN_ONSETS = 8               # below this, rhythm metrics are not reported
 STABILITY_WINDOW = 8         # inter-onset intervals per rolling window for tempo_stability_cv
-MIN_ONSETS_PER_HALF = 4      # needed in each half of the take to measure tempo drift
+MIN_BEATS = 4                # below this, rhythm metrics are not reported
+MIN_BEATS_PER_HALF = 4       # needed in each half of the take to measure tempo drift
 
 SILENCE_GATE_DB = 60.0       # RMS frames this far below the loudest frame count as silence
 
@@ -136,7 +139,7 @@ class Scores:
 
 @dataclass(frozen=True)
 class GridFit:
-    """A straight 'metronome line' fitted through the onsets.
+    """A steady grid (perfect metronome) and each onset's distance from it.
 
     period_s: length of one grid step (one subdivision) in seconds.
     phase_s: time of grid index 0 in seconds.
@@ -256,6 +259,10 @@ def segment_notes(
     A run of frames becomes a note if it lasts at least ``min_duration_s`` (default 80 ms);
     shorter runs are glides or detection blips and are dropped. An unvoiced frame always
     ends a note, so a repeated note with a gap between is counted twice.
+
+    mean_cents and cents_std use the note's interior: NOTE_EDGE_FRAMES frames are dropped at
+    each end, because their analysis window overlaps the neighbouring note (short notes
+    keep all their frames).
     """
     midi = np.round(hz_to_midi_float(track.f0_hz))
     cents = cents_from_nearest_semitone(track.f0_hz)
@@ -271,6 +278,8 @@ def segment_notes(
             if duration >= min_duration_s:
                 note_midi = int(midi[start])
                 run_cents = cents[start:i]
+                if len(run_cents) > 2 * NOTE_EDGE_FRAMES + 2:
+                    run_cents = run_cents[NOTE_EDGE_FRAMES:-NOTE_EDGE_FRAMES]
                 notes.append(Note(
                     start=round(float(track.times[start]), 3),
                     end=round(float(track.times[i - 1] + track.frame_period_s), 3),
@@ -338,57 +347,59 @@ def compute_pitch_metrics(track: PitchTrack, notes: list[Note]) -> PitchMetrics:
 
 # --- Rhythm -------------------------------------------------------------------------------
 
-def detect_onsets_and_tempo(
+def detect_onsets_and_beats(
     y: np.ndarray, sr: int, hop_length: int = ONSET_HOP_LENGTH
-) -> tuple[np.ndarray, float]:
-    """Detect note onsets (seconds) and a global tempo estimate (BPM).
+) -> tuple[np.ndarray, np.ndarray]:
+    """Detect note onsets and beats, both in seconds.
 
     Onsets: librosa.onset.onset_detect on the spectral-flux onset envelope, with
     backtrack=True so each onset is moved back to the energy minimum just before the attack.
-    Tempo: librosa.beat.beat_track on the same envelope. Returns 0.0 if no tempo is found.
+    Beats: librosa.beat.beat_track on the same envelope (dynamic-programming beat tracker;
+    consecutive beats are one beat apart, even through rests).
     """
     envelope = librosa.onset.onset_strength(y=y, sr=sr, hop_length=hop_length)
     onsets = librosa.onset.onset_detect(
         onset_envelope=envelope, sr=sr, hop_length=hop_length, backtrack=True, units="time"
     )
-    tempo, _ = librosa.beat.beat_track(onset_envelope=envelope, sr=sr, hop_length=hop_length)
-    return np.asarray(onsets, dtype=float), float(np.atleast_1d(tempo)[0])
+    _, beats = librosa.beat.beat_track(
+        onset_envelope=envelope, sr=sr, hop_length=hop_length, units="time"
+    )
+    return np.asarray(onsets, dtype=float), np.asarray(beats, dtype=float)
+
+
+def fit_line_tempo(beats_s: np.ndarray) -> tuple[float, float]:
+    """Least-squares line through beat times: beat_k = phase + k · period (k = 0, 1, 2, ...).
+
+    Returns (period_s, phase_s). The tempo is 60 / period_s BPM.
+    """
+    period, phase = np.polyfit(np.arange(len(beats_s)), beats_s, 1)
+    return float(period), float(phase)
 
 
 def fit_beat_grid(
-    onsets_s: np.ndarray,
-    tempo_bpm: float,
-    subdivisions: int = GRID_SUBDIVISIONS,
-    iterations: int = 2,
+    beats_s: np.ndarray, onsets_s: np.ndarray, subdivisions: int = GRID_SUBDIVISIONS
 ) -> GridFit:
-    """Fit a steady grid (a perfect metronome at one tempo) through the onsets.
+    """Build a steady grid from the tracked beats and measure each onset against it.
 
-    1. Start from a grid step of 60 / tempo / subdivisions seconds.
-    2. Walk through the onsets and give each one a grid index: the previous index plus the
-       number of grid steps in the inter-onset interval, rounded.
-    3. Least-squares fit onset_time = phase + index · period (a straight line).
-    4. Repeat 2–3 with the refined period.
-
-    The residuals are each onset's timing error against that steady grid. Because the grid
-    is fitted to the player's own onsets, a constant delay (e.g. audio latency) is absorbed
-    into the phase and does not count as error.
+    1. Fit a straight line through the beat times (fit_line_tempo): a perfect metronome at
+       the performance's average tempo.
+    2. Split every beat into ``subdivisions`` grid steps (4 = sixteenth notes).
+    3. Each onset's residual = onset time − nearest grid time (negative = early).
+    4. Remove the median residual. The onset detector marks the start of an attack and the
+       beat tracker its peak, so there is a constant offset between them; that offset (and
+       any constant audio latency) is not the player's timing error.
     """
-    period = 60.0 / tempo_bpm / subdivisions
-    phase = float(onsets_s[0])
-    indices = np.zeros(len(onsets_s))
-    for _ in range(iterations):
-        steps = np.maximum(np.round(np.diff(onsets_s) / period), 0)
-        indices = np.concatenate([[0.0], np.cumsum(steps)])
-        if len(np.unique(indices)) < 2:
-            break
-        period, phase = np.polyfit(indices, onsets_s, 1)
-    residuals = onsets_s - (phase + indices * period)
-    return GridFit(float(period), float(phase), indices, residuals)
+    beat_period, phase = fit_line_tempo(beats_s)
+    step = beat_period / subdivisions
 
+    def residuals_for(grid_phase: float) -> tuple[np.ndarray, np.ndarray]:
+        indices = np.round((onsets_s - grid_phase) / step)
+        return indices, onsets_s - (grid_phase + indices * step)
 
-def grid_tempo_bpm(period_s: float, subdivisions: int = GRID_SUBDIVISIONS) -> float:
-    """Tempo in BPM implied by a grid step: 60 / (period · subdivisions)."""
-    return 60.0 / (period_s * subdivisions)
+    _, residuals = residuals_for(phase)
+    phase += float(np.median(residuals))
+    indices, residuals = residuals_for(phase)
+    return GridFit(float(step), phase, indices, residuals)
 
 
 def tempo_stability_cv(
@@ -413,36 +424,33 @@ def tempo_stability_cv(
     return float(np.median([np.std(w) / np.mean(w) for w in windows]))
 
 
-def tempo_drift_bpm(
-    onsets_s: np.ndarray, tempo_bpm: float, subdivisions: int = GRID_SUBDIVISIONS
-) -> Optional[float]:
+def tempo_drift_bpm(beats_s: np.ndarray) -> Optional[float]:
     """Tempo of the second half of the take minus tempo of the first half, in BPM.
 
-    Each half gets its own steady-grid fit (fit_beat_grid). Positive = speeding up (rushing),
-    negative = slowing down (dragging). Returns None if either half has fewer than
-    MIN_ONSETS_PER_HALF onsets.
+    The beats are split at the midpoint in time and each half gets its own straight-line
+    tempo fit (fit_line_tempo). Positive = speeding up (rushing), negative = slowing down
+    (dragging). Returns None if either half has fewer than MIN_BEATS_PER_HALF beats.
     """
-    midpoint = (onsets_s[0] + onsets_s[-1]) / 2
-    halves = [onsets_s[onsets_s < midpoint], onsets_s[onsets_s >= midpoint]]
-    if any(len(h) < MIN_ONSETS_PER_HALF for h in halves):
+    midpoint = (beats_s[0] + beats_s[-1]) / 2
+    halves = (beats_s[beats_s < midpoint], beats_s[beats_s >= midpoint])
+    if any(len(half) < MIN_BEATS_PER_HALF for half in halves):
         return None
-    tempos = [grid_tempo_bpm(fit_beat_grid(h, tempo_bpm, subdivisions).period_s, subdivisions)
-              for h in halves]
-    return tempos[1] - tempos[0]
+    first, second = (60.0 / fit_line_tempo(half)[0] for half in halves)
+    return float(second - first)
 
 
-def compute_rhythm_metrics(onsets_s: np.ndarray, librosa_tempo_bpm: float) -> RhythmMetrics:
-    """Timing metrics from onset times and an initial tempo estimate.
+def compute_rhythm_metrics(onsets_s: np.ndarray, beats_s: np.ndarray) -> RhythmMetrics:
+    """Timing metrics from onset and beat times.
 
     onset_count               number of detected onsets.
-    tempo_bpm                 tempo of the steady grid fitted through the onsets
-                              (fit_beat_grid, started from librosa's beat_track estimate).
+    tempo_bpm                 60 / period of the straight line through the beats.
     tempo_stability_cv        see tempo_stability_cv(); lower = steadier pulse.
     tempo_drift_bpm           see tempo_drift_bpm(); > 0 rushing, < 0 dragging.
-    mean_abs_timing_error_ms  mean |onset − nearest grid point| (sixteenth-note grid), ms.
-    pct_onsets_within_30ms    % of onsets within ±30 ms of the grid.
+    mean_abs_timing_error_ms  mean |onset − nearest grid point| on a steady sixteenth-note
+                              grid (fit_beat_grid), in ms.
+    pct_onsets_within_30ms    % of onsets within ±30 ms of that grid.
 
-    Needs at least MIN_ONSETS onsets and a non-zero tempo, otherwise all values except
+    Needs at least MIN_ONSETS onsets and MIN_BEATS beats, otherwise all values except
     onset_count are None with a reason.
     """
     result = RhythmMetrics(onset_count=int(len(onsets_s)))
@@ -453,16 +461,15 @@ def compute_rhythm_metrics(onsets_s: np.ndarray, librosa_tempo_bpm: float) -> Rh
         reason = f"Only {len(onsets_s)} note onsets were detected (at least {MIN_ONSETS} are needed)."
         result.reasons.update({name: reason for name in names})
         return result
-    if librosa_tempo_bpm <= 0:
+    if len(beats_s) < MIN_BEATS:
         reason = "No steady beat could be detected."
         result.reasons.update({name: reason for name in names})
         return result
 
-    grid = fit_beat_grid(onsets_s, librosa_tempo_bpm)
-    tempo = grid_tempo_bpm(grid.period_s)
+    grid = fit_beat_grid(beats_s, onsets_s)
     abs_error_ms = np.abs(grid.residuals_s) * 1000
 
-    result.tempo_bpm = round(tempo, 2)
+    result.tempo_bpm = round(60.0 / (grid.period_s * GRID_SUBDIVISIONS), 2)
     result.mean_abs_timing_error_ms = round(float(np.mean(abs_error_ms)), 2)
     result.pct_onsets_within_30ms = round(float(np.mean(abs_error_ms <= ON_TIME_MS) * 100), 1)
 
@@ -472,10 +479,10 @@ def compute_rhythm_metrics(onsets_s: np.ndarray, librosa_tempo_bpm: float) -> Rh
     else:
         result.tempo_stability_cv = round(cv, 4)
 
-    drift = tempo_drift_bpm(onsets_s, tempo)
+    drift = tempo_drift_bpm(beats_s)
     if drift is None:
         result.reasons["tempo_drift_bpm"] = (
-            f"Each half of the take needs at least {MIN_ONSETS_PER_HALF} onsets to compare tempos."
+            f"Each half of the take needs at least {MIN_BEATS_PER_HALF} beats to compare tempos."
         )
     else:
         result.tempo_drift_bpm = round(drift, 2)
@@ -579,10 +586,10 @@ def analyze_performance(y: np.ndarray, sr: int, instrument: Optional[str] = None
             notes = []  # too little pitched audio for the notes to mean anything
 
     if len(y) == 0:
-        onsets, tempo = np.array([]), 0.0
+        onsets, beats = np.array([]), np.array([])
     else:
-        onsets, tempo = detect_onsets_and_tempo(y, sr)
-    rhythm = compute_rhythm_metrics(onsets, tempo)
+        onsets, beats = detect_onsets_and_beats(y, sr)
+    rhythm = compute_rhythm_metrics(onsets, beats)
     dynamics = compute_dynamics_metrics(y) if len(y) else DynamicsMetrics(
         reasons={"mean_rms_dbfs": "The audio is empty.", "dynamic_range_db": "The audio is empty."})
 
