@@ -37,5 +37,4 @@ class AIAnalysis(Base):
     
     # Relationships
     audio_features = relationship("AudioFeatures", back_populates="analysis", uselist=False)
-    authenticity_result = relationship("AuthenticityResult", back_populates="analysis", uselist=False)
     skill_prediction = relationship("SkillPrediction", back_populates="analysis", uselist=False)

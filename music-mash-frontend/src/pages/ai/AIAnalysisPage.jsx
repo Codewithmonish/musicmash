@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FiTarget, FiMusic, FiTrendingUp, FiShield, FiZap, FiCheckCircle, FiCpu, FiRadio, FiStar } from 'react-icons/fi'
+import { FiTarget, FiMusic, FiTrendingUp, FiZap, FiCheckCircle, FiCpu, FiRadio, FiStar } from 'react-icons/fi'
 import { useParams, Link } from 'react-router-dom'
 import Navbar from '../../components/layout/Navbar'
 import AmbientBackground from '../../components/ui/AmbientBackground'
@@ -32,7 +32,6 @@ const AIAnalysisPage = () => {
       setData({
         analysis: { status: 'COMPLETED', errorMessage: null },
         audioFeatures: { duration: 120, tempo: 120, key: 'C Major', scale: 'Major' },
-        authenticityResult: { authenticityScore: 0.92, confidence: 0.95, isLivePerformance: 1 },
         skillPrediction: { predictedLevel: 'INTERMEDIATE', confidence: 0.88, pitchAccuracy: 0.88, rhythmAccuracy: 0.91 }
       })
     } finally {
@@ -55,8 +54,7 @@ const AIAnalysisPage = () => {
 
   const pitchAccuracy = Math.round((data?.skillPrediction?.pitchAccuracy || 0.88) * 100)
   const rhythmAccuracy = Math.round((data?.skillPrediction?.rhythmAccuracy || 0.90) * 100)
-  const authenticityScore = Math.round((data?.authenticityResult?.authenticityScore || 0.95) * 100)
-  const overallScore = Math.round((pitchAccuracy + rhythmAccuracy + authenticityScore) / 3)
+  const overallScore = Math.round((pitchAccuracy + rhythmAccuracy) / 2)
 
   return (
     <div className="min-h-screen bg-[#06060A] text-foreground pt-24 pb-20 px-4 relative overflow-hidden">
@@ -78,7 +76,7 @@ const AIAnalysisPage = () => {
           <h1 className="font-display text-3xl sm:text-5xl font-bold text-white tracking-tight">
             Performance <span className="gradient-text-cyan">AI Insights</span>
           </h1>
-          <p className="text-muted text-xs sm:text-sm mt-1">Deep neural audio signal breakdown (Pitch, Rhythm, Tempo & Authenticity Verification).</p>
+          <p className="text-muted text-xs sm:text-sm mt-1">Deep neural audio signal breakdown (Pitch, Rhythm & Tempo).</p>
         </motion.div>
 
         {/* Overall Score Badge */}
@@ -95,7 +93,7 @@ const AIAnalysisPage = () => {
         </Card>
 
         {/* Feature Score Breakdown */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Card hover>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-mono text-muted uppercase">PITCH ACCURACY</span>
@@ -126,17 +124,6 @@ const AIAnalysisPage = () => {
             <div className="text-3xl font-display font-bold text-white">{Math.round(data?.audioFeatures?.tempo || 120)} <span className="text-sm text-muted">BPM</span></div>
             <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden mt-3">
               <div className="h-full bg-secondary rounded-full" style={{ width: '85%' }} />
-            </div>
-          </Card>
-
-          <Card hover>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-mono text-muted uppercase">AUTHENTICITY SCORE</span>
-              <FiShield className="text-success text-xl" />
-            </div>
-            <div className="text-3xl font-display font-bold text-white">{authenticityScore}%</div>
-            <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden mt-3">
-              <div className="h-full bg-success rounded-full" style={{ width: `${authenticityScore}%` }} />
             </div>
           </Card>
         </div>

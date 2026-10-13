@@ -2,12 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 from app.database.database import get_db
-from app.models import AIAnalysis, AnalysisStatus, AudioFeatures, AuthenticityResult, SkillPrediction
+from app.models import AIAnalysis, AnalysisStatus, AudioFeatures, SkillPrediction
 from app.schemas import AnalysisRequest, AnalysisResponse, AnalysisStatusResponse, AnalysisResultResponse
 from app.services import (
     AudioAnalysisService,
     VideoAnalysisService,
-    CheatingDetectionService,
     SkillPredictionService,
     RecommendationService
 )
@@ -118,7 +117,6 @@ async def get_analysis_result(analysis_id: int, db: Session = Depends(get_db)):
         
         # Get related data
         audio_features = db.query(AudioFeatures).filter(AudioFeatures.analysis_id == analysis_id).first()
-        authenticity_result = db.query(AuthenticityResult).filter(AuthenticityResult.analysis_id == analysis_id).first()
         skill_prediction = db.query(SkillPrediction).filter(SkillPrediction.analysis_id == analysis_id).first()
         
         return AnalysisResultResponse(
@@ -131,7 +129,6 @@ async def get_analysis_result(analysis_id: int, db: Session = Depends(get_db)):
                 error_message=analysis.error_message
             ),
             audio_features=audio_features,
-            authenticity_result=authenticity_result,
             skill_prediction=skill_prediction
         )
         
@@ -170,7 +167,6 @@ async def process_analysis(
         # Initialize services
         audio_service = AudioAnalysisService()
         video_service = VideoAnalysisService()
-        cheating_service = CheatingDetectionService()
         skill_service = SkillPredictionService()
         
         audio_features_data = None
@@ -223,31 +219,6 @@ async def process_analysis(
                 
             except Exception as e:
                 log.error(f"Error processing video: {e}")
-        
-        # Perform authenticity analysis
-        if audio_features_data:
-            try:
-                log.info(f"Performing authenticity analysis for analysis {analysis_id}")
-                authenticity_data = cheating_service.analyze_authenticity(audio_features_data, video_features_data)
-                
-                # Save authenticity result
-                authenticity_result = AuthenticityResult(
-                    analysis_id=analysis_id,
-                    authenticity_score=authenticity_data.get('authenticity_score'),
-                    confidence=authenticity_data.get('confidence'),
-                    is_live_performance=authenticity_data.get('is_live_performance'),
-                    is_pre_recorded=authenticity_data.get('is_pre_recorded'),
-                    has_suspicious_patterns=authenticity_data.get('has_suspicious_patterns'),
-                    audio_consistency_score=authenticity_data.get('audio_consistency_score'),
-                    video_consistency_score=authenticity_data.get('video_consistency_score'),
-                    timing_anomalies_count=authenticity_data.get('timing_anomalies_count'),
-                    findings=json.dumps(authenticity_data.get('findings', []))
-                )
-                db.add(authenticity_result)
-                db.commit()
-                
-            except Exception as e:
-                log.error(f"Error in authenticity analysis: {e}")
         
         # Perform skill prediction
         if audio_features_data:

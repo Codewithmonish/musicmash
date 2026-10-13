@@ -4,7 +4,6 @@ from app.schemas.analysis import (
     AnalysisStatusResponse,
     AnalysisStatus,
     AudioFeaturesResponse,
-    AuthenticityResultResponse,
     SkillPredictionResponse,
     AnalysisResultResponse,
 )
@@ -19,7 +18,6 @@ __all__ = [
     "AnalysisStatusResponse",
     "AnalysisStatus",
     "AudioFeaturesResponse",
-    "AuthenticityResultResponse",
     "SkillPredictionResponse",
     "AnalysisResultResponse",
     "PracticeRecommendationRequest",

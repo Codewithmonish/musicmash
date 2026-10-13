@@ -17,7 +17,6 @@ soundfile
 
 # Video Processing
 opencv-python-headless
-mediapipe
 
 # Utilities
 python-multipart==0.0.6

@@ -61,19 +61,6 @@ class AudioFeaturesResponse(BaseModel):
         from_attributes = True
 
 
-class AuthenticityResultResponse(BaseModel):
-    id: int
-    analysis_id: int
-    authenticity_score: Optional[float] = None
-    confidence: Optional[float] = None
-    is_live_performance: Optional[int] = None
-    is_pre_recorded: Optional[int] = None
-    has_suspicious_patterns: Optional[int] = None
-    
-    class Config:
-        from_attributes = True
-
-
 class SkillPredictionResponse(BaseModel):
     id: int
     analysis_id: int
@@ -93,5 +80,4 @@ class SkillPredictionResponse(BaseModel):
 class AnalysisResultResponse(BaseModel):
     analysis: AnalysisStatusResponse
     audio_features: Optional[AudioFeaturesResponse] = None
-    authenticity_result: Optional[AuthenticityResultResponse] = None
     skill_prediction: Optional[SkillPredictionResponse] = None
