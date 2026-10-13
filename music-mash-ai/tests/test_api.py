@@ -1,40 +1,20 @@
+"""API tests. Audio is generated in code and written into a temporary upload dir."""
+import numpy as np
 import pytest
-from fastapi.testclient import TestClient
-from main import app
-from app.database.database import init_db, get_db
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from app.database.database import Base
 
-# Test database
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SR = 22050
 
 
-def override_get_db():
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
+def tone(freq_hz: float = 440.0, seconds: float = 2.0) -> np.ndarray:
+    return 0.5 * np.sin(2 * np.pi * freq_hz * np.arange(int(SR * seconds)) / SR)
 
 
-app.dependency_overrides[get_db] = override_get_db
-
-client = TestClient(app)
-
-
-@pytest.fixture
-def setup_database():
-    """Setup test database."""
-    Base.metadata.create_all(bind=engine)
-    yield
-    Base.metadata.drop_all(bind=engine)
+def submit(client, **fields) -> dict:
+    payload = {"performance_id": 1, "user_id": 1, **fields}
+    return client.post("/api/ai/analyze", json=payload)
 
 
-def test_root_endpoint():
-    """Test root endpoint."""
+def test_root_endpoint(client):
     response = client.get("/")
     assert response.status_code == 200
     data = response.json()
@@ -43,102 +23,78 @@ def test_root_endpoint():
     assert data["status"] == "running"
 
 
-def test_health_check():
-    """Test health check endpoint."""
+def test_health_check(client):
     response = client.get("/health")
     assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "healthy"
+    assert response.json()["status"] == "healthy"
 
 
-def test_analyze_endpoint(setup_database):
-    """Test analyze performance endpoint."""
-    request_data = {
-        "performance_id": 1,
-        "user_id": 1,
-        "audio_url": "http://example.com/audio.mp3",
-        "video_url": "http://example.com/video.mp4",
-        "instrument": "PIANO",
-        "category": "CLASSICAL"
-    }
-    
-    response = client.post("/api/ai/analyze", json=request_data)
+def test_analyze_endpoint(client, setup_database, write_upload):
+    name = write_upload(tone(), "a440.wav")
+    response = submit(client, audio_file=name, instrument="PIANO", category="CLASSICAL")
     assert response.status_code == 200
     data = response.json()
     assert "id" in data
     assert data["performance_id"] == 1
     assert data["user_id"] == 1
-    assert data["status"] in ["PENDING", "PROCESSING"]
+    assert data["status"] == "PENDING"  # status at the time it was queued
 
 
-def test_analyze_endpoint_missing_fields(setup_database):
-    """Test analyze endpoint with missing required fields."""
-    request_data = {
-        "performance_id": 1
-        # Missing user_id
-    }
-    
-    response = client.post("/api/ai/analyze", json=request_data)
+def test_analyze_endpoint_missing_fields(client, setup_database):
+    response = client.post("/api/ai/analyze", json={"performance_id": 1})
     assert response.status_code == 422
 
 
-def test_status_endpoint(setup_database):
-    """Test get analysis status endpoint."""
-    # First create an analysis
-    request_data = {
-        "performance_id": 1,
-        "user_id": 1,
-        "audio_url": "http://example.com/audio.mp3"
-    }
-    
-    create_response = client.post("/api/ai/analyze", json=request_data)
-    analysis_id = create_response.json()["id"]
-    
-    # Get status
+def test_analyze_needs_a_file(client, setup_database):
+    response = submit(client)
+    assert response.status_code == 422
+    assert "audio_file or video_file is required" in response.text
+
+
+@pytest.mark.parametrize("bad_name", [
+    "../secret.wav",                    # escapes the upload dir
+    "..\\secret.wav",
+    "sub/dir.wav",                      # no directories
+    "C:\\Windows\\win.ini",             # absolute Windows path
+    "/etc/passwd",                      # absolute POSIX path
+    "http://example.com/audio.mp3",     # URLs are not accepted
+    ".env",                             # hidden files
+])
+def test_analyze_rejects_anything_but_a_plain_file_name(client, setup_database, upload_dir, bad_name):
+    response = submit(client, audio_file=bad_name)
+    assert response.status_code == 422
+
+
+def test_analyze_rejects_missing_upload(client, setup_database, upload_dir):
+    response = submit(client, audio_file="not-uploaded.wav")
+    assert response.status_code == 400
+    assert "not found in the upload directory" in response.json()["detail"]
+
+
+def test_status_endpoint(client, setup_database, write_upload):
+    analysis_id = submit(client, audio_file=write_upload(tone())).json()["id"]
     response = client.get(f"/api/ai/status/{analysis_id}")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == analysis_id
-    assert "status" in data
+    assert data["status"] == "COMPLETED"
 
 
-def test_status_endpoint_not_found(setup_database):
-    """Test status endpoint with non-existent analysis."""
-    response = client.get("/api/ai/status/99999")
-    assert response.status_code == 404
+def test_status_endpoint_not_found(client, setup_database):
+    assert client.get("/api/ai/status/99999").status_code == 404
 
 
-def test_result_endpoint_not_completed(setup_database):
-    """Test result endpoint when analysis not completed."""
-    # Create an analysis
-    request_data = {
-        "performance_id": 1,
-        "user_id": 1,
-        "audio_url": "http://example.com/audio.mp3"
-    }
-    
-    create_response = client.post("/api/ai/analyze", json=request_data)
-    analysis_id = create_response.json()["id"]
-    
-    # Try to get result immediately (should not be completed yet)
+def test_result_endpoint_not_completed(client, setup_database, upload_dir):
+    (upload_dir / "broken.wav").write_bytes(b"not audio")  # exists, but cannot be decoded
+    analysis_id = submit(client, audio_file="broken.wav").json()["id"]
     response = client.get(f"/api/ai/result/{analysis_id}")
     assert response.status_code == 400
 
 
-def test_full_analysis_of_generated_audio(setup_database, tmp_path):
+def test_full_analysis_of_generated_audio(client, setup_database, write_upload):
     """End to end: a generated 440 Hz tone goes through /analyze and comes back measured."""
-    import numpy as np
-    import soundfile as sf
-
-    sr = 22050
-    tone = 0.5 * np.sin(2 * np.pi * 440 * np.arange(sr * 2) / sr)
-    audio_path = tmp_path / "a440.wav"
-    sf.write(audio_path, tone, sr)
-
-    create_response = client.post("/api/ai/analyze", json={
-        "performance_id": 1, "user_id": 1, "audio_url": str(audio_path), "instrument": "VIOLIN"
-    })
-    analysis_id = create_response.json()["id"]
+    name = write_upload(tone(), "a440.wav")
+    analysis_id = submit(client, audio_file=name, instrument="VIOLIN").json()["id"]
 
     # TestClient runs the background task before returning, so the result is ready.
     response = client.get(f"/api/ai/result/{analysis_id}")
@@ -159,37 +115,23 @@ def test_full_analysis_of_generated_audio(setup_database, tmp_path):
     assert any("Accurate intonation" in s for s in skill["strengths"])
 
 
-def test_unreadable_audio_marks_analysis_failed(setup_database, tmp_path):
-    create_response = client.post("/api/ai/analyze", json={
-        "performance_id": 1, "user_id": 1, "audio_url": str(tmp_path / "missing.wav")
-    })
-    analysis_id = create_response.json()["id"]
+def test_unreadable_audio_marks_analysis_failed(client, setup_database, upload_dir):
+    (upload_dir / "broken.wav").write_bytes(b"not audio")
+    analysis_id = submit(client, audio_file="broken.wav").json()["id"]
 
     status = client.get(f"/api/ai/status/{analysis_id}").json()
     assert status["status"] == "FAILED"
     assert "Could not analyse the audio" in status["error_message"]
 
 
-def _analyse_generated_audio(tmp_path, signal, name="take.wav"):
-    import soundfile as sf
-    path = tmp_path / name
-    sf.write(path, signal, 22050)
-    response = client.post("/api/ai/analyze", json={
-        "performance_id": 1, "user_id": 1, "audio_url": str(path)
-    })
-    return response.json()["id"]
-
-
-def test_pitch_contour_endpoint_shape_and_downsampling(setup_database, tmp_path, monkeypatch):
+def test_pitch_contour_endpoint_shape_and_downsampling(client, setup_database, write_upload, monkeypatch):
     """A generated C-major scale comes back as a capped contour plus its 8 notes."""
-    import numpy as np
     from app.services.audio import metrics
 
     monkeypatch.setattr(metrics, "CONTOUR_MAX_POINTS", 40)  # ~140 frames must shrink to <= 40
-    sr = 22050
-    freqs = np.repeat(440 * 2 ** ((np.array([60, 62, 64, 65, 67, 69, 71, 72]) - 69) / 12), int(0.4 * sr))
-    scale = 0.5 * np.sin(2 * np.pi * np.cumsum(freqs) / sr)
-    analysis_id = _analyse_generated_audio(tmp_path, scale)
+    freqs = np.repeat(440 * 2 ** ((np.array([60, 62, 64, 65, 67, 69, 71, 72]) - 69) / 12), int(0.4 * SR))
+    scale = 0.5 * np.sin(2 * np.pi * np.cumsum(freqs) / SR)
+    analysis_id = submit(client, audio_file=write_upload(scale, "scale.wav")).json()["id"]
 
     response = client.get(f"/api/ai/result/{analysis_id}/pitch-contour")
     assert response.status_code == 200
@@ -215,19 +157,17 @@ def test_pitch_contour_endpoint_shape_and_downsampling(setup_database, tmp_path,
     assert "pitch_contour" not in client.get(f"/api/ai/result/{analysis_id}").json()["audio_features"]
 
 
-def test_pitch_contour_is_empty_with_reason_for_unpitched_audio(setup_database, tmp_path):
-    import numpy as np
-    noise = 0.1 * np.random.default_rng(0).standard_normal(22050 * 2)
-    analysis_id = _analyse_generated_audio(tmp_path, noise, "noise.wav")
+def test_pitch_contour_is_empty_with_reason_for_unpitched_audio(client, setup_database, write_upload):
+    noise = 0.1 * np.random.default_rng(0).standard_normal(SR * 2)
+    analysis_id = submit(client, audio_file=write_upload(noise, "noise.wav")).json()["id"]
 
     data = client.get(f"/api/ai/result/{analysis_id}/pitch-contour").json()
     assert data["points"] == [] and data["notes"] == []
     assert "detectable pitch" in data["reason"]
 
 
-def test_pitch_contour_errors(setup_database, tmp_path):
+def test_pitch_contour_errors(client, setup_database, upload_dir):
     assert client.get("/api/ai/result/99999/pitch-contour").status_code == 404
-    failed_id = client.post("/api/ai/analyze", json={
-        "performance_id": 1, "user_id": 1, "audio_url": str(tmp_path / "missing.wav")
-    }).json()["id"]
+    (upload_dir / "broken.wav").write_bytes(b"not audio")
+    failed_id = submit(client, audio_file="broken.wav").json()["id"]
     assert client.get(f"/api/ai/result/{failed_id}/pitch-contour").status_code == 400

@@ -1,8 +1,10 @@
 import json
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from typing import Any, Optional
 from datetime import datetime
 from enum import Enum
+
+from app.core.uploads import is_valid_upload_name
 
 
 class AnalysisStatus(str, Enum):
@@ -13,12 +15,30 @@ class AnalysisStatus(str, Enum):
 
 
 class AnalysisRequest(BaseModel):
+    """What Spring sends to start an analysis (snake_case; see contracts/ai-analyze-request.json).
+
+    audio_file / video_file are plain file names inside the shared upload directory
+    (app/core/uploads.py), never URLs or paths.
+    """
     performance_id: int = Field(..., description="Performance ID from Spring Boot")
     user_id: int = Field(..., description="User ID from Spring Boot")
-    audio_url: Optional[str] = Field(None, description="URL to audio file")
-    video_url: Optional[str] = Field(None, description="URL to video file")
+    audio_file: Optional[str] = Field(None, description="Upload file name, e.g. 3f2a...e1.wav")
+    video_file: Optional[str] = Field(None, description="Upload file name, e.g. 9b1c...07.mp4")
     instrument: Optional[str] = Field(None, description="Instrument being played")
     category: Optional[str] = Field(None, description="Performance category")
+
+    @field_validator("audio_file", "video_file")
+    @classmethod
+    def _plain_file_name(cls, value: Optional[str]) -> Optional[str]:
+        if value is not None and not is_valid_upload_name(value):
+            raise ValueError("must be a plain upload file name (no directories, drive or URL)")
+        return value
+
+    @model_validator(mode="after")
+    def _needs_a_file(self) -> "AnalysisRequest":
+        if not self.audio_file and not self.video_file:
+            raise ValueError("audio_file or video_file is required")
+        return self
 
 
 class AnalysisResponse(BaseModel):

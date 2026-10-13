@@ -13,6 +13,8 @@ from app.services.audio import metrics as audio_metrics
 from app.services import AudioAnalysisService, SkillPredictionService
 from app.utils.logging import log
 from datetime import datetime
+from typing import Optional
+from app.core.uploads import UploadPathError, resolve_upload
 import json
 
 router = APIRouter(prefix="/api/ai", tags=["AI Analysis"])
@@ -30,6 +32,14 @@ async def analyze_performance(
     This endpoint queues the performance for analysis and returns immediately.
     The analysis runs in the background.
     """
+    # Check the files exist before queueing, so Spring gets an immediate, specific error.
+    for file_name in (request.audio_file, request.video_file):
+        if file_name:
+            try:
+                resolve_upload(file_name)
+            except UploadPathError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+
     try:
         log.info(f"Received analysis request for performance {request.performance_id}")
         
@@ -37,8 +47,8 @@ async def analyze_performance(
         analysis = AIAnalysis(
             performance_id=request.performance_id,
             user_id=request.user_id,
-            audio_url=request.audio_url,
-            video_url=request.video_url,
+            audio_file=request.audio_file,
+            video_file=request.video_file,
             instrument=request.instrument,
             category=request.category,
             status=AnalysisStatus.PENDING
@@ -52,8 +62,8 @@ async def analyze_performance(
         background_tasks.add_task(
             process_analysis,
             analysis.id,
-            request.audio_url,
-            request.video_url,
+            request.audio_file,
+            request.video_file,
             request.instrument,
             request.category,
             db
@@ -173,8 +183,8 @@ async def get_pitch_contour(analysis_id: int, db: Session = Depends(get_db)):
 
 async def process_analysis(
     analysis_id: int,
-    audio_url: str,
-    video_url: str,
+    audio_file: Optional[str],
+    video_file: Optional[str],
     instrument: str,
     category: str,
     db: Session
@@ -197,14 +207,11 @@ async def process_analysis(
         db.commit()
         
         # Audio is measured from the audio file, or from the video's soundtrack if only a
-        # video was uploaded. Without either there is nothing to measure.
-        source_url = audio_url or video_url
-        if not source_url:
-            raise ValueError("No audio or video file was provided, so there is nothing to analyse.")
-
+        # video was uploaded (the request schema guarantees at least one).
         try:
+            source_path = resolve_upload(audio_file or video_file)
             log.info(f"Measuring audio for analysis {analysis_id}")
-            metrics = AudioAnalysisService().analyze_audio(source_url, instrument)
+            metrics = AudioAnalysisService().analyze_audio(str(source_path), instrument)
         except Exception as e:
             # Fail the analysis visibly instead of marking it COMPLETED with empty results.
             log.error(f"Error processing audio: {e}")
