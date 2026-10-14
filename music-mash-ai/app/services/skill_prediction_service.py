@@ -24,6 +24,8 @@ INACCURATE_CENTS = 20.0      # mean_abs_cents above → weakness
 TUNING_BIAS_CENTS = 10.0     # |mean_signed_cents| above → "tends sharp/flat"
 STEADY_NOTE_CENTS = 5.0      # pitch_stability_cents at or below → strength
 UNSTEADY_NOTE_CENTS = 15.0   # pitch_stability_cents above → weakness
+OFF_NOTE_CENTS = 25.0        # a single note whose |mean_cents| is above this is named
+MAX_NOTES_LISTED = 3         # at most this many off notes are listed (worst first)
 TIGHT_TIMING_MS = 15.0       # mean_abs_timing_error_ms at or below → strength
 LOOSE_TIMING_MS = 30.0       # mean_abs_timing_error_ms above → weakness
 TEMPO_DRIFT_BPM = 3.0        # |tempo_drift_bpm| above → "rushes/drags"
@@ -76,6 +78,21 @@ def assess(metrics: dict[str, Any]) -> tuple[list[str], list[str], list[str]]:
         direction = "sharp" if signed > 0 else "flat"
         weak(f"Tends {direction}: on average {signed:+.0f} cents from the nearest semitone.",
              "Check your tuning against A4 = 440 Hz, then practise landing held notes in the centre.")
+
+    # Individual notes: whole-take averages hide one badly tuned note among many good ones.
+    off_notes = sorted(
+        (n for n in metrics.get("notes") or [] if abs(n["mean_cents"]) > OFF_NOTE_CENTS),
+        key=lambda n: -abs(n["mean_cents"]),
+    )
+    if off_notes:
+        listed = ", ".join(
+            f"{n['note_name']} at {n['start']:.1f} s ({n['mean_cents']:+.0f}¢ "
+            f"{'sharp' if n['mean_cents'] > 0 else 'flat'})"
+            for n in off_notes[:MAX_NOTES_LISTED]
+        )
+        more = f" and {len(off_notes) - MAX_NOTES_LISTED} more" if len(off_notes) > MAX_NOTES_LISTED else ""
+        weak(f"Out-of-tune notes: {listed}{more}.",
+             "Loop the bars around the marked notes slowly against a drone, landing each one in the centre.")
 
     stability = metrics.get("pitch_stability_cents")
     if stability is not None:

@@ -56,3 +56,26 @@ def test_service_copies_scores_and_level():
     assert result["predicted_level"] == "ADVANCED"
     assert result["intonation_score"] == 80.0 and result["rhythm_score"] is None
     assert "80/100" in result["level_basis"]
+
+
+def note(name: str, start: float, cents: float) -> dict:
+    return {"start": start, "end": start + 0.4, "midi": 64, "note_name": name, "mean_cents": cents}
+
+
+def test_single_out_of_tune_note_is_named_even_when_averages_are_good():
+    """One sharp note among good ones: the averages pass, but the note is still called out."""
+    strengths, weaknesses, drills = assess({
+        "mean_abs_cents": 4.9, "pitch_stability_cents": 0.6,
+        "notes": [note("C4", 0.0, 1.5), note("E4", 1.0, 41.5), note("F4", 1.5, -2.0)],
+    })
+    assert weaknesses == ["Out-of-tune notes: E4 at 1.0 s (+42¢ sharp)."]
+    assert len(drills) == 1
+    assert any("Accurate intonation" in s for s in strengths)
+
+
+def test_off_notes_are_listed_worst_first_and_capped():
+    notes = [note("C4", 0.0, -30), note("D4", 0.5, 45), note("E4", 1.0, 26),
+             note("F4", 1.5, -38), note("G4", 2.0, 10)]
+    _, weaknesses, _ = assess({"notes": notes})
+    assert weaknesses == ["Out-of-tune notes: D4 at 0.5 s (+45¢ sharp), F4 at 1.5 s (-38¢ flat), "
+                          "C4 at 0.0 s (-30¢ flat) and 1 more."]
