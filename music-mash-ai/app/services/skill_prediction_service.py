@@ -129,7 +129,7 @@ class SkillPredictionService:
             metrics: Flat metrics dict from AudioAnalysisService.analyze_audio
 
         Returns:
-            Dict with predicted_level, level_basis, pitch_score, rhythm_score, overall_score,
+            Dict with predicted_level, level_basis, intonation_score, rhythm_score, overall_score,
             strengths, weaknesses and improvement_areas.
         """
         level, basis = predict_level(metrics.get("overall_score"))
@@ -138,7 +138,7 @@ class SkillPredictionService:
         return {
             "predicted_level": level,
             "level_basis": basis,
-            "pitch_score": metrics.get("pitch_score"),
+            "intonation_score": metrics.get("intonation_score"),
             "rhythm_score": metrics.get("rhythm_score"),
             "overall_score": metrics.get("overall_score"),
             "strengths": strengths,

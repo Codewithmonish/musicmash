@@ -50,7 +50,14 @@ which frames are voiced (have a pitch).
   resolution through parabolic interpolation), as long as YIN agrees with pYIN to within
   50 cents. YIN adds a small, consistent bias of about **+1.5 cents** at 440 Hz.
 
-## 2. Cents deviation and pitch metrics
+## 2. Intonation: cents from the nearest note
+
+> **Intonation, not note accuracy.** Without a reference melody we don't know which note
+> the player *meant*, so every frame is compared to the **nearest** equal-tempered note.
+> That distance can never exceed ±50 cents (halfway to the next note). A wrong note played
+> perfectly in tune therefore scores as perfect intonation. These metrics answer "how well
+> centred are the notes you played?", not "did you play the right notes?". Note accuracy
+> needs a reference track and arrives with Phase 3 (reference comparison).
 
 For each voiced frame:
 
@@ -74,9 +81,9 @@ cents = 100 · (midi − round(midi))          ∈ [−50, +50], + = sharp
 
 **What these do NOT capture**
 
-- **Wrong notes.** Deviation is measured from the *nearest* semitone, so a confidently
-  played wrong note scores as perfectly in tune. Phase 3 (reference-track comparison)
-  addresses this.
+- **Wrong notes.** See the box above: deviation is measured from the *nearest*
+  semitone (max ±50¢), so a confidently played wrong note scores as perfectly in tune.
+  Phase 3 (reference-track comparison) addresses this.
 - **Non-equal-temperament tuning.** Just intonation, maqam, blue notes, or a band tuned
   to A = 442 Hz all count as "out of tune". At A = 442 every note reads about +8 cents.
 - **Vibrato.** Expressive vibrato raises `mean_abs_cents` and `pitch_stability_cents`
@@ -116,7 +123,14 @@ most **1500 points**, computed during analysis, stored as JSON, and served by
 | `midi_float` | **median** fractional MIDI pitch of the voiced frames. A median keeps a bucket that spans two notes on one of them, instead of averaging to a pitch nobody sang. |
 | `cents_off` | `100 · (midi_float − round(midi_float))`, so always within ±50 |
 
-Unvoiced points have `midi_float` and `cents_off` = `null`. If pitch metrics are unavailable
+Unvoiced points have `midi_float` and `cents_off` = `null`.
+
+**Chart colour bands** (`PitchContourChart`, `mode` prop):
+
+| Mode | Green | Amber | Red | Used when |
+|---|---|---|---|---|
+| `reference-free` (default) | ≤ 20¢ | 20–35¢ | > 35¢ | Comparing to the nearest note (now). Bands sit inside the ±50¢ that is possible. |
+| `reference` | ≤ 25¢ | 25–50¢ | > 50¢ | Comparing to a reference melody (Phase 3), where a wrong note can be 100¢+ off. | If pitch metrics are unavailable
 (the voiced-ratio gate in §2), the contour is empty and the endpoint returns the same reason.
 *Doesn't capture:* recordings longer than ~35 s lose time resolution (a 3-minute take
 gives one point per ~140 ms), so very fast ornaments are smoothed out of the chart. The
@@ -187,12 +201,16 @@ Each score maps one metric through a fixed linear formula, so anyone can recompu
 
 | Score | Formula | Examples |
 |---|---|---|
-| `pitch_score` | `clip(100 − 2 × mean_abs_cents, 0, 100)` | 0 ¢ → 100 · 10 ¢ → 80 · 25 ¢ → 50 · ≥ 50 ¢ → 0 |
+| `intonation_score` | `clip(100 − 4 × mean_abs_cents, 0, 100)` | 0 ¢ → 100 · 5 ¢ → 80 · 12.5 ¢ → 50 · ≥ 25 ¢ → 0 |
 | `rhythm_score` | `clip(100 − 2 × mean_abs_timing_error_ms, 0, 100)` | 0 ms → 100 · 10 ms → 80 · 25 ms → 50 · ≥ 50 ms → 0 |
 | `overall_score` | mean of whichever of the two above exist | |
 
-A score is `null` when its metric is `null`. Calibration caveat: random tuning averages
-25 cents, so `pitch_score` ≈ 50 is "no better than chance", not "average player".
+A score is `null` when its metric is `null`.
+
+**Why ×4 for intonation.** Nearest-note cents are bounded at 50, and completely random
+tuning already averages 25 cents. With ×2, "no better than chance" would still score 50.
+With ×4, chance scores **0**, and the scale spends its range where real playing lives:
+a well-tuned player at 5¢ scores 80, and 12.5¢ (clearly audible) scores 50.
 
 ## 7. Skill level and feedback (rule-based)
 
@@ -220,8 +238,8 @@ trained model.
 
 | Signal | Expected | Measured |
 |---|---|---|
-| 440 Hz sine | ≈ 0 cents | 1.45 cents (YIN bias), pitch score 97.1 |
-| 440 Hz + 30 cents | +30 ± 5 | +31.4 cents |
+| 440 Hz sine | ≈ 0 cents | 1.45 cents (YIN bias), intonation score 94.2 |
+| 440 Hz + 30 cents | +30 ± 5 | +31.4 cents, intonation score 0 |
 | C-major scale, 8 sine notes × 0.4 s | C4 D4 E4 F4 G4 A4 B4 C5 | all 8 correct, note wobble ±0.5 cents |
 | Clicks at 120 BPM | 120 ± 3 BPM, error < 10 ms | 119.99 BPM, 1.45 ms, rhythm score 97.1 |
 | Same clicks, ±40 ms uniform jitter (seed 0) | ≈ 20 ms error, tempo still 120 | 23.8 ms, 119.95 BPM, rhythm score 52.4 |

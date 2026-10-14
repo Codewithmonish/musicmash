@@ -46,7 +46,7 @@ class AudioFeatures(Base):
     dynamic_range_db = Column(Float, nullable=True)
 
     # Scores (0-100)
-    pitch_score = Column(Float, nullable=True)
+    intonation_score = Column(Float, nullable=True)
     rhythm_score = Column(Float, nullable=True)
     overall_score = Column(Float, nullable=True)
 

@@ -52,7 +52,7 @@ def test_unmeasured_metrics_produce_no_statements():
 
 def test_service_copies_scores_and_level():
     result = SkillPredictionService().predict_skill_level(
-        {"pitch_score": 80.0, "rhythm_score": None, "overall_score": 80.0, "mean_abs_cents": 10.0})
+        {"intonation_score": 80.0, "rhythm_score": None, "overall_score": 80.0, "mean_abs_cents": 10.0})
     assert result["predicted_level"] == "ADVANCED"
-    assert result["pitch_score"] == 80.0 and result["rhythm_score"] is None
+    assert result["intonation_score"] == 80.0 and result["rhythm_score"] is None
     assert "80/100" in result["level_basis"]

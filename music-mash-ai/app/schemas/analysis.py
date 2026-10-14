@@ -116,7 +116,7 @@ class AudioFeaturesResponse(BaseModel):
     mean_rms_dbfs: Optional[float] = Field(None, description="Mean frame level, dBFS")
     dynamic_range_db: Optional[float] = Field(None, description="95th - 5th percentile frame level, dB")
 
-    pitch_score: Optional[float] = Field(None, description="clip(100 - 2 * mean_abs_cents, 0, 100)")
+    intonation_score: Optional[float] = Field(None, description="clip(100 - 4 * mean_abs_cents, 0, 100)")
     rhythm_score: Optional[float] = Field(None, description="clip(100 - 2 * mean_abs_timing_error_ms, 0, 100)")
     overall_score: Optional[float] = Field(None, description="Mean of the available scores")
 
@@ -135,7 +135,7 @@ class SkillPredictionResponse(BaseModel):
     analysis_id: int
     predicted_level: Optional[str] = Field(None, description="BEGINNER / INTERMEDIATE / ADVANCED / EXPERT")
     level_basis: Optional[str] = Field(None, description="How the level was decided")
-    pitch_score: Optional[float] = None
+    intonation_score: Optional[float] = None
     rhythm_score: Optional[float] = None
     overall_score: Optional[float] = None
     strengths: list[str] = Field(default_factory=list)

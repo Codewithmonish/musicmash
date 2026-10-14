@@ -6,11 +6,26 @@ import {
 // Pitch curve over time, coloured by how far each point is from the nearest note.
 // Data comes from GET /api/ai/result/{id}/pitch-contour (see music-mash-ai/docs/METRICS.md).
 
-export const BANDS = [
-  { key: 'inTune', label: 'Within ±25¢', color: '#0ca30c', test: (c) => Math.abs(c) <= 25 },
-  { key: 'near', label: '25–50¢ off', color: '#fab219', test: (c) => Math.abs(c) <= 50 },
-  { key: 'off', label: 'More than 50¢ off', color: '#d03b3b', test: () => true },
-]
+// Colour bands (in cents) per comparison mode:
+// - 'reference-free': distance to the NEAREST note, which can never exceed ±50¢, so the
+//   bands sit inside that range (what we measure today).
+// - 'reference': distance to a reference melody's note (Phase 3), where a wrong note can be
+//   100¢ or more off.
+const BAND_LIMITS = {
+  'reference-free': [20, 35],
+  reference: [25, 50],
+}
+
+const COLORS = { inTune: '#0ca30c', near: '#fab219', off: '#d03b3b' }
+
+export const bandsFor = (mode) => {
+  const [green, amber] = BAND_LIMITS[mode]
+  return [
+    { key: 'inTune', label: `Within ±${green}¢`, color: COLORS.inTune, test: (c) => Math.abs(c) <= green },
+    { key: 'near', label: `${green}–${amber}¢ off`, color: COLORS.near, test: (c) => Math.abs(c) <= amber },
+    { key: 'off', label: `More than ${amber}¢ off`, color: COLORS.off, test: () => true },
+  ]
+}
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
@@ -19,7 +34,6 @@ export const midiToNoteName = (midi) => {
   return `${NOTE_NAMES[((rounded % 12) + 12) % 12]}${Math.floor(rounded / 12) - 1}`
 }
 
-const bandOf = (cents) => BANDS.find((band) => band.test(cents)).key
 
 export const describeCents = (cents) => {
   const rounded = Math.round(cents)
@@ -33,19 +47,22 @@ export const describeCents = (cents) => {
  * so the coloured segments join up instead of leaving a gap. Unvoiced points are null
  * in every series, which breaks the line where there is no pitch.
  */
-const toChartRows = (points) => points.map((point) => {
-  const row = { ...point, inTune: null, near: null, off: null }
-  if (!point.voiced) return row
-  row[bandOf(point.cents_off)] = point.midi_float
-  return row
-}).map((row, i, rows) => {
-  const next = rows[i + 1]
-  if (row.voiced && next?.voiced) {
-    const nextBand = bandOf(next.cents_off)
-    if (nextBand !== bandOf(row.cents_off)) return { ...row, [nextBand]: row.midi_float }
-  }
-  return row
-})
+const toChartRows = (points, bands) => {
+  const bandOf = (cents) => bands.find((band) => band.test(cents)).key
+  return points.map((point) => {
+    const row = { ...point, inTune: null, near: null, off: null }
+    if (!point.voiced) return row
+    row[bandOf(point.cents_off)] = point.midi_float
+    return row
+  }).map((row, i, rows) => {
+    const next = rows[i + 1]
+    if (row.voiced && next?.voiced) {
+      const nextBand = bandOf(next.cents_off)
+      if (nextBand !== bandOf(row.cents_off)) return { ...row, [nextBand]: row.midi_float }
+    }
+    return row
+  })
+}
 
 // Y ticks on note names: every semitone for small ranges, natural notes only for wider
 // ranges, and only the Cs for very wide ones, so labels never collide.
@@ -70,8 +87,9 @@ const ContourTooltip = ({ active, payload }) => {
   )
 }
 
-const PitchContourChart = ({ points, notes, height = 340 }) => {
-  const rows = useMemo(() => toChartRows(points), [points])
+const PitchContourChart = ({ points, notes, mode = 'reference-free', height = 340 }) => {
+  const bands = useMemo(() => bandsFor(mode), [mode])
+  const rows = useMemo(() => toChartRows(points, bands), [points, bands])
 
   const [low, high] = useMemo(() => {
     const pitches = [
@@ -81,7 +99,7 @@ const PitchContourChart = ({ points, notes, height = 340 }) => {
     return [Math.floor(Math.min(...pitches)) - 1, Math.ceil(Math.max(...pitches)) + 1]
   }, [points, notes])
 
-  const usedBands = BANDS.filter((band) => rows.some((row) => row[band.key] != null))
+  const usedBands = bands.filter((band) => rows.some((row) => row[band.key] != null))
 
   return (
     <div>

@@ -54,7 +54,7 @@ class RecommendationService:
                 "description": "Practice major and minor scales in all keys",
                 "difficulty_level": "BEGINNER",
                 "focus_area": "Scales",
-                "target_skill": "Pitch Accuracy",
+                "target_skill": "Intonation",
                 "priority": 8,
                 "estimated_practice_time": 15
             },

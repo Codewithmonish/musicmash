@@ -133,7 +133,7 @@ class DynamicsMetrics:
 
 @dataclass
 class Scores:
-    pitch_score: Optional[float] = None
+    intonation_score: Optional[float] = None
     rhythm_score: Optional[float] = None
     overall_score: Optional[float] = None
     reasons: dict[str, str] = field(default_factory=dict)
@@ -566,12 +566,17 @@ def compute_dynamics_metrics(y: np.ndarray, hop_length: int = HOP_LENGTH) -> Dyn
 
 # --- Scores -------------------------------------------------------------------------------
 
-def pitch_score(mean_abs_cents: float) -> float:
-    """pitch_score = clip(100 − 2 · mean_abs_cents, 0, 100).
+def intonation_score(mean_abs_cents: float) -> float:
+    """intonation_score = clip(100 − 4 · mean_abs_cents, 0, 100).
 
-    0 cents → 100. 25 cents (what random tuning averages) → 50. 50 cents → 0.
+    0 cents → 100. 5 cents → 80. 12.5 cents → 50. 25 cents or more → 0
+    (25 cents is what random tuning averages, so "no better than chance" scores 0).
+
+    Intonation, not note accuracy: cents are measured from the NEAREST semitone, so a
+    confidently played wrong note still counts as in tune. Note accuracy needs a reference
+    melody (Phase 3).
     """
-    return float(np.clip(100 - 2 * mean_abs_cents, 0, 100))
+    return float(np.clip(100 - 4 * mean_abs_cents, 0, 100))
 
 
 def rhythm_score(mean_abs_timing_error_ms: float) -> float:
@@ -585,14 +590,14 @@ def rhythm_score(mean_abs_timing_error_ms: float) -> float:
 def compute_scores(pitch: PitchMetrics, rhythm: RhythmMetrics) -> Scores:
     """0–100 scores that are direct, documented mappings of measured metrics.
 
-    overall_score is the plain mean of whichever of pitch_score and rhythm_score exist.
+    overall_score is the plain mean of whichever of intonation_score and rhythm_score exist.
     A score is None (with the underlying metric's reason) when its metric is None.
     """
     scores = Scores()
     if pitch.mean_abs_cents is not None:
-        scores.pitch_score = round(pitch_score(pitch.mean_abs_cents), 1)
+        scores.intonation_score = round(intonation_score(pitch.mean_abs_cents), 1)
     else:
-        scores.reasons["pitch_score"] = pitch.reasons.get("mean_abs_cents", "Pitch was not measured.")
+        scores.reasons["intonation_score"] = pitch.reasons.get("mean_abs_cents", "Pitch was not measured.")
 
     if rhythm.mean_abs_timing_error_ms is not None:
         scores.rhythm_score = round(rhythm_score(rhythm.mean_abs_timing_error_ms), 1)
@@ -600,7 +605,7 @@ def compute_scores(pitch: PitchMetrics, rhythm: RhythmMetrics) -> Scores:
         scores.reasons["rhythm_score"] = rhythm.reasons.get(
             "mean_abs_timing_error_ms", "Rhythm was not measured.")
 
-    available = [s for s in (scores.pitch_score, scores.rhythm_score) if s is not None]
+    available = [s for s in (scores.intonation_score, scores.rhythm_score) if s is not None]
     if available:
         scores.overall_score = round(float(np.mean(available)), 1)
     else:

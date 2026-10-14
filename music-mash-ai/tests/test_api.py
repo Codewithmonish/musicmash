@@ -109,7 +109,7 @@ def test_full_analysis_of_generated_audio(client, setup_database, write_upload):
     assert "onsets" in features["unavailable_reasons"]["tempo_bpm"]
 
     skill = data["skill_prediction"]
-    assert skill["pitch_score"] > 90
+    assert skill["intonation_score"] > 90
     assert skill["rhythm_score"] is None
     assert skill["predicted_level"] == "EXPERT"
     assert any("Accurate intonation" in s for s in skill["strengths"])

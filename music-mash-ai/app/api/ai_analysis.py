@@ -233,7 +233,7 @@ async def process_analysis(
             analysis_id=analysis_id,
             predicted_level=skill["predicted_level"],
             level_basis=skill["level_basis"],
-            pitch_score=skill["pitch_score"],
+            intonation_score=skill["intonation_score"],
             rhythm_score=skill["rhythm_score"],
             overall_score=skill["overall_score"],
             strengths=json.dumps(skill["strengths"]),

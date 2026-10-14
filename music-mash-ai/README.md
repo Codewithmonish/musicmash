@@ -8,7 +8,7 @@ This is a standalone Python FastAPI service that processes music performances us
 
 ## Features
 
-- **Measured audio metrics**: pitch accuracy in cents (pYIN), note segmentation, timing error
+- **Measured audio metrics**: intonation in cents (pYIN), note segmentation, timing error
   against a steady beat grid, tempo stability and drift, dynamics. Every formula, unit and
   limitation is documented in [docs/METRICS.md](docs/METRICS.md).
 - **Transparent scores**: 0-100 scores that are fixed linear mappings of one metric each.
@@ -199,17 +199,17 @@ Get the complete result of an analysis (abridged below; see `/docs` for every fi
     "notes": [{ "start": 0.42, "end": 0.91, "midi": 69, "note_name": "A4", "mean_cents": 3.1, "cents_std": 2.0 }],
     "tempo_bpm": null,
     "mean_abs_timing_error_ms": null,
-    "pitch_score": 76.8,
+    "intonation_score": 53.6,
     "rhythm_score": null,
-    "overall_score": 76.8,
+    "overall_score": 53.6,
     "unavailable_reasons": {
       "tempo_bpm": "Only 5 note onsets were detected (at least 8 are needed).",
       "rhythm_score": "Only 5 note onsets were detected (at least 8 are needed)."
     }
   },
   "skill_prediction": {
-    "predicted_level": "ADVANCED",
-    "level_basis": "Rule-based: overall score 77/100 → ADVANCED (...)",
+    "predicted_level": "INTERMEDIATE",
+    "level_basis": "Rule-based: overall score 54/100 → INTERMEDIATE (...)",
     "strengths": [],
     "weaknesses": [],
     "improvement_areas": []

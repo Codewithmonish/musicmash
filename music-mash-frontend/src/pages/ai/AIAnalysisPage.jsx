@@ -237,7 +237,7 @@ const AIAnalysisPage = () => {
           <h1 className="font-display text-3xl sm:text-5xl font-bold text-white tracking-tight">
             Performance <span className="gradient-text-cyan">AI Insights</span>
           </h1>
-          <p className="text-muted text-xs sm:text-sm mt-1">Measured pitch accuracy (pYIN), timing against a steady beat grid, and dynamics.</p>
+          <p className="text-muted text-xs sm:text-sm mt-1">Measured intonation (pYIN), timing against a steady beat grid, and dynamics.</p>
         </motion.div>
 
         {/* Overall Score */}
@@ -258,12 +258,12 @@ const AIAnalysisPage = () => {
         {/* Score Breakdown */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <ScoreCard
-            label="Pitch score"
+            label="Intonation score"
             icon={<FiTarget className="text-accent text-xl" />}
-            score={skill.pitch_score}
-            reason={reasons.pitch_score}
+            score={skill.intonation_score}
+            reason={reasons.intonation_score}
             barClass="bg-accent"
-            detail={features.mean_abs_cents != null && `100 − 2 × ${features.mean_abs_cents.toFixed(1)}¢ average deviation`}
+            detail={features.mean_abs_cents != null && `100 − 4 × ${features.mean_abs_cents.toFixed(1)}¢ average distance from the nearest note`}
           />
           <ScoreCard
             label="Rhythm score"

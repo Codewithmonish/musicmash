@@ -73,7 +73,7 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
             {[
               { icon: FiUpload, step: '01', title: 'Record Track', desc: 'Capture audio or video directly in Performance Studio' },
-              { icon: FiMusic, step: '02', title: 'AI Analysis', desc: 'Instant pitch accuracy, tempo & rhythm breakdown' },
+              { icon: FiMusic, step: '02', title: 'AI Analysis', desc: 'Measured intonation, tempo & timing breakdown' },
               { icon: FiMic, step: '03', title: 'Judge Review', desc: 'Certified judges evaluate technical delivery & score' },
               { icon: FiTrendingUp, step: '04', title: 'Earn XP', desc: 'Progress through skill tiers and unlock achievements' },
               { icon: FiAward, step: '05', title: 'Rank & Win', desc: 'Compete on global leaderboards and win competitions' },
@@ -115,7 +115,7 @@ const LandingPage = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { icon: FiStar, title: 'AI Pitch & Rhythm Engine', desc: 'FastAPI microservice extracting tempo, key, pitch accuracy, and performance quality.' },
+              { icon: FiStar, title: 'AI Pitch & Rhythm Engine', desc: 'FastAPI microservice measuring intonation in cents, tempo, timing and dynamics.' },
               { icon: FiMic, title: 'Judge Evaluation System', desc: 'Detailed feedback from expert judges with granular criteria scoring.' },
               { icon: FiTarget, title: 'Practice Arena', desc: 'Interactive music game mode with BPM adjustment, section looping & real-time XP combo.' },
               { icon: FiAward, title: 'Live Competitions', desc: 'Compete in active tournaments across instruments & categories with live leaderboards.' },

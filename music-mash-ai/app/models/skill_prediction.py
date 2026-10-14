@@ -17,7 +17,7 @@ class SkillPrediction(Base):
     level_basis = Column(Text, nullable=True)  # how the level was decided
 
     # 0-100 scores copied from the measured metrics
-    pitch_score = Column(Float, nullable=True)
+    intonation_score = Column(Float, nullable=True)
     rhythm_score = Column(Float, nullable=True)
     overall_score = Column(Float, nullable=True)
 

@@ -89,9 +89,11 @@ def test_cents_from_nearest_semitone_exact_values():
 
 
 def test_scores_are_documented_linear_mappings():
-    assert m.pitch_score(0) == 100
-    assert m.pitch_score(10) == 80
-    assert m.pitch_score(60) == 0
+    assert m.intonation_score(0) == 100
+    assert m.intonation_score(5) == 80
+    assert m.intonation_score(12.5) == 50
+    assert m.intonation_score(25) == 0
+    assert m.intonation_score(60) == 0
     assert m.rhythm_score(5) == 90
     assert m.rhythm_score(80) == 0
 
@@ -129,13 +131,14 @@ def test_in_tune_sine_has_small_deviation(in_tune):
     assert in_tune.pitch.voiced_ratio > 0.9
     assert in_tune.pitch.mean_abs_cents < 5
     assert in_tune.pitch.pct_frames_within_25_cents > 95
-    assert in_tune.scores.pitch_score > 90
+    assert in_tune.scores.intonation_score > 90
 
 
 def test_detuned_sine_measures_plus_30_cents(sharp_30):
     assert sharp_30.pitch.mean_signed_cents == pytest.approx(30, abs=5)
     assert sharp_30.pitch.mean_abs_cents == pytest.approx(30, abs=5)
     assert sharp_30.pitch.pct_frames_within_25_cents < 5
+    assert sharp_30.scores.intonation_score == 0  # 100 - 4 x ~31 is clipped to 0
 
 
 def test_steady_sine_is_stable(in_tune):
@@ -177,7 +180,7 @@ def test_jittered_clicks_have_clearly_higher_timing_error(clean_clicks, jittered
 def test_click_track_has_no_pitch_metrics(clean_clicks):
     assert clean_clicks.pitch.mean_abs_cents is None
     assert "detectable pitch" in clean_clicks.pitch.reasons["mean_abs_cents"]
-    assert clean_clicks.scores.pitch_score is None
+    assert clean_clicks.scores.intonation_score is None
     assert clean_clicks.scores.overall_score == clean_clicks.scores.rhythm_score
 
 
@@ -187,7 +190,7 @@ def test_silence_returns_nulls_with_reasons_and_does_not_crash():
     result = m.analyze_performance(np.zeros(SR * 2, dtype=np.float32), SR)
     flat = result.to_flat_dict()
     for name in ("mean_abs_cents", "pitch_stability_cents", "tempo_bpm",
-                 "mean_abs_timing_error_ms", "mean_rms_dbfs", "pitch_score", "overall_score"):
+                 "mean_abs_timing_error_ms", "mean_rms_dbfs", "intonation_score", "overall_score"):
         assert flat[name] is None
         assert flat["unavailable_reasons"][name]
     assert flat["voiced_ratio"] == 0
@@ -201,7 +204,7 @@ def test_white_noise_returns_null_pitch_with_reason(seed):
     assert result.pitch.voiced_ratio < m.MIN_VOICED_RATIO
     assert result.pitch.mean_abs_cents is None
     assert result.pitch.reasons["mean_abs_cents"]
-    assert result.scores.pitch_score is None
+    assert result.scores.intonation_score is None
     assert result.notes == []
 
 
