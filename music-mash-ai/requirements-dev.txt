@@ -1,0 +1,8 @@
+# Development and testing only; not needed to run the service.
+-r requirements.txt
+
+pytest==9.1.1
+
+# Browser automation for scripts/e2e_screenshot.py (see RUN_LOCAL.md).
+# After installing, download the browser once: python -m playwright install chromium
+playwright
