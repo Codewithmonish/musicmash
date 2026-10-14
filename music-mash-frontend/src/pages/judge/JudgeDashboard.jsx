@@ -32,7 +32,7 @@ const JudgeDashboard = () => {
   const fetchPendingPerformances = async () => {
     setLoading(true)
     try {
-      const response = await api.get('/api/performances')
+      const response = await api.get('/performances')
       setPerformances(response.data || [])
     } catch (error) {
       console.error('Failed to fetch performances:', error)
@@ -56,7 +56,7 @@ const JudgeDashboard = () => {
   const submitEvaluation = async (performanceId, action) => {
     try {
       if (action === 'approve') {
-        await api.post(`/api/performances/${performanceId}/submit`, evaluationForm)
+        await api.post(`/performances/${performanceId}/submit`, evaluationForm)
         toast.success('Performance evaluated and approved!')
       } else {
         toast.success('Performance review recorded.')

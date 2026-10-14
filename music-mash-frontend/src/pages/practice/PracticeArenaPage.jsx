@@ -42,8 +42,8 @@ const PracticeArenaPage = () => {
     setLoading(true)
     try {
       const [exercisesRes, statsRes] = await Promise.allSettled([
-        api.get('/api/practice/exercises'),
-        api.get('/api/practice/stats')
+        api.get('/practice/exercises'),
+        api.get('/practice/stats')
       ])
 
       if (exercisesRes.status === 'fulfilled') {
@@ -111,7 +111,7 @@ const PracticeArenaPage = () => {
 
     const xpEarned = activeSession?.xpReward || 150
     try {
-      await api.post('/api/practice/sessions', {
+      await api.post('/practice/sessions', {
         songTitle: activeSession?.title || 'Practice Track',
         instrument: 'GUITAR',
         difficulty: activeSession?.difficulty || 'INTERMEDIATE',

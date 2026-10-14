@@ -33,9 +33,9 @@ const DashboardPage = () => {
     try {
       // Parallel API calls with graceful fallback for modules under construction
       const [profileRes, performancesRes, practiceStatsRes] = await Promise.allSettled([
-        api.get('/api/profile/me'),
-        api.get('/api/performances'),
-        api.get('/api/practice/stats')
+        api.get('/profile/me'),
+        api.get('/performances'),
+        api.get('/practice/stats')
       ])
 
       if (profileRes.status === 'fulfilled') {

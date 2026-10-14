@@ -24,8 +24,8 @@ const SocialPage = () => {
     setLoading(true)
     try {
       const [usersRes, notificationsRes] = await Promise.allSettled([
-        api.get('/api/social/discover'),
-        api.get('/api/notifications')
+        api.get('/social/discover'),
+        api.get('/notifications')
       ])
 
       if (usersRes.status === 'fulfilled') {
@@ -45,10 +45,10 @@ const SocialPage = () => {
   const toggleFollow = async (userId, isCurrentlyFollowing) => {
     try {
       if (isCurrentlyFollowing) {
-        await api.delete(`/api/social/unfollow/${userId}`)
+        await api.delete(`/social/unfollow/${userId}`)
         toast.success('Unfollowed user')
       } else {
-        await api.post(`/api/social/follow/${userId}`)
+        await api.post(`/social/follow/${userId}`)
         toast.success('Started following musician!')
       }
       fetchSocialData()
@@ -59,7 +59,7 @@ const SocialPage = () => {
 
   const markNotificationRead = async (id) => {
     try {
-      await api.put(`/api/notifications/${id}/read`)
+      await api.put(`/notifications/${id}/read`)
       fetchSocialData()
     } catch (err) {
       console.error(err)

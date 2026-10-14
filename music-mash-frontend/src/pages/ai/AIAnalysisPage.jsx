@@ -167,8 +167,8 @@ const AIAnalysisPage = () => {
     setError(null)
     setContourError(null)
     const [result, contourResult] = await Promise.allSettled([
-      api.get(`/api/ai/result/${id}`),
-      api.get(`/api/ai/result/${id}/pitch-contour`),
+      api.get(`/ai/result/${id}`),
+      api.get(`/ai/result/${id}/pitch-contour`),
     ])
     if (result.status === 'fulfilled') {
       setData(result.value.data)

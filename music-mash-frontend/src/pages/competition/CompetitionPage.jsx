@@ -33,7 +33,7 @@ const CompetitionPage = () => {
   const fetchCompetitions = async () => {
     setLoading(true)
     try {
-      const response = await api.get('/api/competitions')
+      const response = await api.get('/competitions')
       setCompetitions(response.data || [])
     } catch (error) {
       console.error('Failed to fetch competitions:', error)
@@ -45,7 +45,7 @@ const CompetitionPage = () => {
 
   const handleRegister = async (competitionId) => {
     try {
-      await api.post(`/api/competitions/${competitionId}/register`)
+      await api.post(`/competitions/${competitionId}/register`)
       toast.success('Registered for competition!')
       fetchCompetitions()
     } catch (error) {
@@ -57,7 +57,7 @@ const CompetitionPage = () => {
     e.preventDefault()
     setCreating(true)
     try {
-      await api.post('/api/competitions', createForm)
+      await api.post('/competitions', createForm)
       toast.success('Competition created successfully!')
       setShowCreateModal(false)
       fetchCompetitions()

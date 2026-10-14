@@ -163,7 +163,7 @@ const UploadPage = () => {
   const uploadFile = async (file, type) => {
     const data = new FormData()
     data.append('file', file)
-    const endpoint = type === 'audio' ? '/api/upload/audio' : '/api/upload/video'
+    const endpoint = type === 'audio' ? '/upload/audio' : '/upload/video'
     const response = await api.post(endpoint, data, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
@@ -196,7 +196,7 @@ const UploadPage = () => {
         status: asDraft ? 'SUBMITTED' : 'SUBMITTED'
       }
 
-      await api.post('/api/performances', performanceData)
+      await api.post('/performances', performanceData)
       toast.success(asDraft ? 'Draft performance saved!' : 'Performance submitted to command center!')
       navigate('/dashboard')
     } catch (err) {

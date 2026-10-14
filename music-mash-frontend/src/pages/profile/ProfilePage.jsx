@@ -37,9 +37,9 @@ const ProfilePage = () => {
     setLoading(true)
     try {
       const [profileRes, perfRes, statsRes] = await Promise.allSettled([
-        api.get('/api/profile/me'),
-        api.get('/api/performances'),
-        api.get('/api/practice/stats')
+        api.get('/profile/me'),
+        api.get('/performances'),
+        api.get('/practice/stats')
       ])
 
       if (profileRes.status === 'fulfilled') {
@@ -73,7 +73,7 @@ const ProfilePage = () => {
   const handleSave = async () => {
     setSaving(true)
     try {
-      await api.put('/api/profile', formData)
+      await api.put('/profile', formData)
       toast.success('Command Studio profile updated!')
       setEditing(false)
       fetchProfileData()

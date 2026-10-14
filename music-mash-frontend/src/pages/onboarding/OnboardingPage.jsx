@@ -79,7 +79,7 @@ const OnboardingPage = () => {
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      await api.put('/api/profile', {
+      await api.put('/profile', {
         displayName: formData.displayName,
         bio: formData.bio,
         country: formData.country,

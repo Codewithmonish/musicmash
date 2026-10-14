@@ -22,8 +22,8 @@ const ChallengesPage = () => {
     setLoading(true)
     try {
       const [challengesRes, achievementsRes] = await Promise.allSettled([
-        api.get('/api/challenges'),
-        api.get('/api/achievements/user')
+        api.get('/challenges'),
+        api.get('/achievements/user')
       ])
 
       if (challengesRes.status === 'fulfilled') {
