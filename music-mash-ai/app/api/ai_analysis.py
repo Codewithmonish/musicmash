@@ -181,7 +181,7 @@ async def get_pitch_contour(analysis_id: int, db: Session = Depends(get_db)):
     )
 
 
-async def process_analysis(
+def process_analysis(
     analysis_id: int,
     audio_file: Optional[str],
     video_file: Optional[str],
@@ -191,6 +191,10 @@ async def process_analysis(
 ):
     """
     Background task to process the analysis.
+
+    Deliberately a plain (sync) function: the analysis is seconds of CPU-bound librosa work.
+    Starlette runs sync background tasks in its thread pool; as an ``async def`` it would run
+    on the event loop and freeze the whole server (including /status polling) until done.
     """
     try:
         log.info(f"Starting processing for analysis {analysis_id}")
@@ -228,7 +232,7 @@ async def process_analysis(
             **metrics,
         ))
 
-        skill = SkillPredictionService().predict_skill_level(metrics)
+        skill = SkillPredictionService().predict_skill_level({**metrics, "notes": notes})
         db.add(SkillPrediction(
             analysis_id=analysis_id,
             predicted_level=skill["predicted_level"],
