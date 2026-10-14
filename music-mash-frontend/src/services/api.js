@@ -1,6 +1,9 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081/api'
+// All calls use paths relative to the Spring API root (e.g. api.get('/performances')).
+// Accept VITE_API_URL with or without the trailing "/api" so both forms reach the same root.
+const configuredBase = (import.meta.env.VITE_API_URL || 'http://localhost:8081/api').replace(/\/+$/, '')
+const API_BASE_URL = configuredBase.endsWith('/api') ? configuredBase : `${configuredBase}/api`
 
 const api = axios.create({
   baseURL: API_BASE_URL,

@@ -64,13 +64,15 @@ const toChartRows = (points, bands) => {
   })
 }
 
-// Y ticks on note names: every semitone for small ranges, natural notes only for wider
-// ranges, and only the Cs for very wide ones, so labels never collide.
+// Y ticks on note names. At most ~13 labels fit the chart height without overlapping, so:
+// every semitone for up to an octave, natural notes (no sharps) up to two octaves, and only
+// the Cs beyond that. All returned ticks are drawn (interval={0}); recharts would otherwise
+// silently drop "colliding" labels, which hid E4 and B4 in the first screenshot.
 const noteTicks = (low, high) => {
   const all = Array.from({ length: high - low + 1 }, (_, i) => low + i)
   const span = high - low
-  if (span <= 14) return all
-  if (span <= 28) return all.filter((m) => !NOTE_NAMES[m % 12].includes('#'))
+  if (span <= 12) return all
+  if (span <= 24) return all.filter((m) => !NOTE_NAMES[((m % 12) + 12) % 12].includes('#'))
   return all.filter((m) => m % 12 === 0)
 }
 
@@ -132,6 +134,7 @@ const PitchContourChart = ({ points, notes, mode = 'reference-free', height = 34
             type="number"
             domain={[low, high]}
             ticks={noteTicks(low, high)}
+            interval={0}
             tickFormatter={midiToNoteName}
             stroke="rgba(255,255,255,0.35)"
             tick={{ fontSize: 11 }}
