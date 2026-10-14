@@ -77,6 +77,7 @@ Update this list at the end of each phase (one line per item).
 - [x] Phase 0 — cleanup, secrets, git setup
 - [x] Phase 1 — real pitch and rhythm metrics
 - [x] Phase 2 — pitch contour visualizer
+- [x] Phase 2.5 — Spring↔AI contract fixes, intonation rename, local run scripts, verified end-to-end with Playwright
 - [ ] Phase 3 — reference-track comparison (DTW)
 - [ ] Phase 4 — RAG AI coach
 - [ ] Phase 5 — instrument auto-detection model

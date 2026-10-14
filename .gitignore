@@ -36,3 +36,7 @@ NUL
 
 # VS Code Copilot Java-upgrade tool
 .github/modernize/
+
+# Local dev run (scripts/dev_start.ps1, demo_seed.py, e2e_screenshot.py)
+/logs/
+/screenshots/

@@ -176,6 +176,9 @@ metrics in §2 always use every frame.
   the next grid point and looks early.
 - **Tempo octave errors.** The beat tracker can lock onto half or double the felt tempo.
   The grid is still valid for timing, but `tempo_bpm` will be off by ×2.
+- **Abrupt note endings.** A note cut off within ~10 ms is effectively a click, and the
+  onset detector reports it as a second onset (found in the live demo: 24 onsets for 12
+  notes and a false "uneven pulse"). Natural decays and the demo's 40 ms release are fine.
 - **Short takes.** With only a few beats per half, `tempo_drift_bpm` is noisy: on 8 s of
   randomly jittered clicks it read +2.4 BPM with no real drift.
 - Being "early" or "late" relative to a band or backing track. There is no external
@@ -228,6 +231,7 @@ trained model.
 | `mean_abs_cents` | ≤ 10 | > 20 | Long tones against a drone or tuner |
 | `mean_signed_cents` | — | \|x\| > 10 ("tends sharp/flat") | Check tuning, centre held notes |
 | `pitch_stability_cents` | ≤ 5 | > 15 | Hold notes 4 beats watching a tuner |
+| each note's `mean_cents` | — | \|x\| > 25 ("Out-of-tune notes: E4 at 1.0 s (+42¢ sharp)", worst 3 listed) | Loop the bars around those notes against a drone |
 | `mean_abs_timing_error_ms` | ≤ 15 | > 30 | Metronome at 90% of the measured tempo |
 | `tempo_drift_bpm` | — | \|x\| > 3 ("rushes" / "drags") | Metronome on for the whole piece |
 | `tempo_stability_cv` | ≤ 0.02 | > 0.05 | Tap along, then play with every second click |
@@ -244,3 +248,4 @@ trained model.
 | Clicks at 120 BPM | 120 ± 3 BPM, error < 10 ms | 119.99 BPM, 1.45 ms, rhythm score 97.1 |
 | Same clicks, ±40 ms uniform jitter (seed 0) | ≈ 20 ms error, tempo still 120 | 23.8 ms, 119.95 BPM, rhythm score 52.4 |
 | Silence, white noise, empty array | pitch `null` with a reason, no crash | ✓ |
+| Live demo (`scripts/demo_seed.py`): 12-note melody, E4 +40¢, through Spring | E4 ≈ +40¢, others ≈ 0, 120 BPM | E4 +41.5¢, others +1.2 to +2.1¢, 120.1 BPM, 5.4 ms, intonation 80.4, rhythm 89.3 |
