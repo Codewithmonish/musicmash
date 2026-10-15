@@ -40,7 +40,13 @@ const TempoTooltip = ({ active, payload }) => {
   )
 }
 
-const TempoDriftChart = ({ curve }) => {
+// Even, whole-second ticks from 0 to the reference duration (same span as the timeline above).
+const secondTicks = (duration) => {
+  const step = Math.max(1, Math.ceil(duration / 6))
+  return Array.from({ length: Math.floor(duration / step) + 1 }, (_, i) => i * step)
+}
+
+const TempoDriftChart = ({ curve, duration }) => {
   const ratios = curve.map((p) => p.tempo_ratio)
   const low = Math.min(0.8, ...ratios)
   const high = Math.max(1.2, ...ratios)
@@ -48,8 +54,8 @@ const TempoDriftChart = ({ curve }) => {
     <ResponsiveContainer width="100%" height={140}>
       <LineChart data={curve} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
         <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" />
-        <XAxis dataKey="ref_time" type="number" domain={['dataMin', 'dataMax']}
-          tickFormatter={(t) => `${Math.round(t)}s`} stroke="rgba(255,255,255,0.35)" tick={{ fontSize: 11 }} />
+        <XAxis dataKey="ref_time" type="number" domain={[0, duration]} ticks={secondTicks(duration)}
+          interval={0} tickFormatter={(t) => `${t}s`} stroke="rgba(255,255,255,0.35)" tick={{ fontSize: 11 }} />
         <YAxis domain={[Math.floor(low * 10) / 10, Math.ceil(high * 10) / 10]} tickFormatter={(r) => `${r.toFixed(1)}×`}
           stroke="rgba(255,255,255,0.35)" tick={{ fontSize: 11 }} width={40} />
         <ReferenceLine y={1} stroke="rgba(255,255,255,0.4)" strokeDasharray="4 4"
@@ -112,7 +118,7 @@ const ComparisonTimeline = ({ result }) => {
                       type="button"
                       onClick={() => setSelected(i)}
                       aria-label={`${ISSUES[section.issue].label} from ${clock(section.ref_start)} to ${clock(section.ref_end)}`}
-                      className={`absolute top-0.5 bottom-0.5 rounded flex items-center justify-center text-xs font-bold text-white transition ${selected === i ? 'ring-2 ring-white' : 'hover:brightness-125'}`}
+                      className={`absolute top-0.5 bottom-0.5 rounded flex items-center justify-center text-base leading-none font-bold text-white transition ${selected === i ? 'ring-2 ring-white' : 'hover:brightness-125'}`}
                       style={{ left: pct(section.ref_start), width: `calc(${pct(section.ref_end - section.ref_start)} - 2px)`, backgroundColor: lane.color }}
                     >
                       {ISSUES[section.issue].symbol}
@@ -156,8 +162,8 @@ const ComparisonTimeline = ({ result }) => {
       {result.tempo_curve.length > 1 && (
         <div>
           <h4 className="text-xs font-mono uppercase text-muted mb-1">Your tempo compared with the original</h4>
-          <p className="text-[11px] text-muted mb-2">Above 1.0× you were faster than the original at that point, below 1.0× slower.</p>
-          <TempoDriftChart curve={result.tempo_curve} />
+          <p className="text-[11px] text-muted mb-2">Above 1.0× you were faster than the original at that point, below 1.0× slower (each point averages a 4-second window, so sudden changes appear gradual).</p>
+          <TempoDriftChart curve={result.tempo_curve} duration={duration} />
         </div>
       )}
     </div>
