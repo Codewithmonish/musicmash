@@ -10,6 +10,7 @@ import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import PitchContourChart, { describeCents } from '../../components/ai/PitchContourChart'
 import StatCard from '../../components/ai/StatCard'
+import ReferenceComparison from '../../components/ai/ReferenceComparison'
 import api from '../../services/api'
 
 // Every number on this page is measured by the AI service (music-mash-ai/docs/METRICS.md).
@@ -293,6 +294,9 @@ const AIAnalysisPage = () => {
 
         {/* Pitch Contour */}
         <PitchContourSection contour={contour} error={contourError} />
+
+        {/* Reference comparison (Phase 3) */}
+        <ReferenceComparison analysisId={id} />
 
         {/* Coach Feedback */}
         <Card hover={false} className="border-white/10 p-6 mb-8">
