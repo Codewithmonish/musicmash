@@ -40,3 +40,6 @@ NUL
 # Local dev run (scripts/dev_start.ps1, demo_seed.py, e2e_screenshot.py)
 /logs/
 /screenshots/
+
+# Image build download cache (scripts/images/process_images.py)
+/scripts/images/.cache/

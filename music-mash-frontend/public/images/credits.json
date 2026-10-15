@@ -1,0 +1,436 @@
+[
+  {
+    "file": "/images/hero/crowd-blue-stage.webp",
+    "photographer": "Dorel Gnatiuc",
+    "source": "https://unsplash.com/photos/silhouette-of-people-watching-concert-jz_CtXafltc",
+    "licence": "Unsplash License",
+    "alt": "Concert crowd in silhouette in front of a stage washed in blue light"
+  },
+  {
+    "file": "/images/hero/guitarist-smoke.webp",
+    "photographer": "Francisco Moreno",
+    "source": "https://unsplash.com/photos/GrIty4BNJEE",
+    "licence": "Unsplash License",
+    "alt": "Guitarist in silhouette on a smoky stage, black and white"
+  },
+  {
+    "file": "/images/hero/dj-hands-purple.webp",
+    "photographer": "Marcela Laskoski",
+    "source": "https://unsplash.com/photos/YrtFlrLo2DQ",
+    "licence": "Unsplash License",
+    "alt": "A DJ's hand over glowing decks in purple and red light"
+  },
+  {
+    "file": "/images/genres/hiphop.webp",
+    "photographer": "aiden marples",
+    "source": "https://unsplash.com/photos/Udu9NgiNFk8",
+    "licence": "Unsplash License",
+    "alt": "Rapper with a microphone in low stage light"
+  },
+  {
+    "file": "/images/genres/jazz.webp",
+    "photographer": "Denny Müller",
+    "source": "https://unsplash.com/photos/a-man-playing-a-saxophone-in-a-dark-room-z_disLOcoKM",
+    "licence": "Unsplash License",
+    "alt": "Saxophonist silhouetted against a pink-lit jazz bar"
+  },
+  {
+    "file": "/images/genres/classical.webp",
+    "photographer": "Larisa Birta",
+    "source": "https://unsplash.com/photos/slbOcNlWNHA",
+    "licence": "Unsplash License",
+    "alt": "Violin section of an orchestra in dim light"
+  },
+  {
+    "file": "/images/genres/rock.webp",
+    "photographer": "Hector Bermudez",
+    "source": "https://unsplash.com/photos/iIWDt0fXa84",
+    "licence": "Unsplash License",
+    "alt": "Long-haired guitarist playing an electric guitar on stage"
+  },
+  {
+    "file": "/images/genres/pop.webp",
+    "photographer": "Fabian Centeno",
+    "source": "https://unsplash.com/photos/k4s5mTSYULI",
+    "licence": "Unsplash License",
+    "alt": "Singer in a black dress under stage spotlights"
+  },
+  {
+    "file": "/images/genres/electronic.webp",
+    "photographer": "Panagiotis Falcos",
+    "source": "https://unsplash.com/photos/9ZRqoZoyCPs",
+    "licence": "Unsplash License",
+    "alt": "Synthesizer and studio monitor in red and purple light"
+  },
+  {
+    "file": "/images/genres/folk.webp",
+    "photographer": "Gabriel Gurrola",
+    "source": "https://unsplash.com/photos/person-playing-guitar-2UuhMZEChdc",
+    "licence": "Unsplash License",
+    "alt": "Hands playing an acoustic guitar"
+  },
+  {
+    "file": "/images/genres/rnb.webp",
+    "photographer": "Artem Bryzgalov",
+    "source": "https://unsplash.com/photos/n6NNwX0lRTk",
+    "licence": "Unsplash License",
+    "alt": "Three singers in silhouette at microphones in blue haze"
+  },
+  {
+    "file": "/images/instruments/piano.webp",
+    "photographer": "Johannes Plenio",
+    "source": "https://unsplash.com/photos/piano-keys-RWytwNueNng",
+    "licence": "Unsplash License",
+    "alt": "Piano keys in dramatic close-up"
+  },
+  {
+    "file": "/images/instruments/guitar.webp",
+    "photographer": "Arthur Ogleznev",
+    "source": "https://unsplash.com/photos/OT-tVcdZUMw",
+    "licence": "Unsplash License",
+    "alt": "Hands on an electric guitar under blue stage light"
+  },
+  {
+    "file": "/images/instruments/violin.webp",
+    "photographer": "Joel Timothy",
+    "source": "https://unsplash.com/photos/YY3ijZa2lGQ",
+    "licence": "Unsplash License",
+    "alt": "Violinist's hands on the strings and bow"
+  },
+  {
+    "file": "/images/instruments/drums.webp",
+    "photographer": "Josh Sorenson",
+    "source": "https://unsplash.com/photos/MjIMc6uhwrE",
+    "licence": "Unsplash License",
+    "alt": "Drummer's sticks hitting a drum kit"
+  },
+  {
+    "file": "/images/instruments/bass.webp",
+    "photographer": "freestocks",
+    "source": "https://unsplash.com/photos/closeup-photo-of-person-playing-bass-Fx5rrxSaUtI",
+    "licence": "Unsplash License",
+    "alt": "Close-up of hands playing a bass guitar"
+  },
+  {
+    "file": "/images/instruments/vocals.webp",
+    "photographer": "israel palacio",
+    "source": "https://unsplash.com/photos/Y20JJ_ddy9M",
+    "licence": "Unsplash License",
+    "alt": "Vintage microphone in warm bokeh light"
+  },
+  {
+    "file": "/images/instruments/flute.webp",
+    "photographer": "Ani Adigyozalyan",
+    "source": "https://unsplash.com/photos/hz3g5dxWS30",
+    "licence": "Unsplash License",
+    "alt": "Hands playing a flute against a black background"
+  },
+  {
+    "file": "/images/instruments/saxophone.webp",
+    "photographer": "benjamin lehman",
+    "source": "https://unsplash.com/photos/brass-saxophone-in-black-background-0h2F-Ib2Zdo",
+    "licence": "Unsplash License",
+    "alt": "Brass saxophone against a black background"
+  },
+  {
+    "file": "/images/instruments/trumpet.webp",
+    "photographer": "Chris Bair",
+    "source": "https://unsplash.com/photos/person-playing-trumpet-during-night-time-A10y2Eq7OHY",
+    "licence": "Unsplash License",
+    "alt": "Trumpet player at night in warm light"
+  },
+  {
+    "file": "/images/instruments/cello.webp",
+    "photographer": "Adi Goldstein",
+    "source": "https://unsplash.com/photos/veCoBypas4A",
+    "licence": "Unsplash License",
+    "alt": "Cellist's hands and bow on a cello"
+  },
+  {
+    "file": "/images/covers/laser-rig.webp",
+    "photographer": "Ben Tofan",
+    "source": "https://unsplash.com/photos/black-laser-light-peTt3DTUhMQ",
+    "licence": "Unsplash License",
+    "alt": "Stage lighting rig with a teal beam"
+  },
+  {
+    "file": "/images/covers/festival-night.webp",
+    "photographer": "Leslie del Moral",
+    "source": "https://unsplash.com/photos/people-watching-concert-during-night-time-TVV49SQuQ_c",
+    "licence": "Unsplash License",
+    "alt": "Festival crowd facing a brightly lit stage at night"
+  },
+  {
+    "file": "/images/covers/mixer-blue.webp",
+    "photographer": "Aleksandr Popov",
+    "source": "https://unsplash.com/photos/JhYnL-BiP18",
+    "licence": "Unsplash License",
+    "alt": "DJ mixer glowing blue in the dark"
+  },
+  {
+    "file": "/images/covers/dj-outdoor.webp",
+    "photographer": "Michael Benz",
+    "source": "https://unsplash.com/photos/SP6vKjbUic0",
+    "licence": "Unsplash License",
+    "alt": "DJ's hands on a controller at an outdoor party"
+  },
+  {
+    "file": "/images/covers/mic-violet.webp",
+    "photographer": "Matt Botsford",
+    "source": "https://unsplash.com/photos/OKLqGsCT8qs",
+    "licence": "Unsplash License",
+    "alt": "Vintage silver microphone against a violet background"
+  },
+  {
+    "file": "/images/covers/headphones.webp",
+    "photographer": "Sebastian Banasiewcz",
+    "source": "https://unsplash.com/photos/oXXc-s5nNy8",
+    "licence": "Unsplash License",
+    "alt": "Headphones on black, black and white"
+  },
+  {
+    "file": "/images/covers/piano-mono.webp",
+    "photographer": "Amir Doreh",
+    "source": "https://unsplash.com/photos/grayscale-photography-of-piano-cHUBZFjY13g",
+    "licence": "Unsplash License",
+    "alt": "Piano keys in black and white"
+  },
+  {
+    "file": "/images/covers/green-crowd.webp",
+    "photographer": "Diane Picchiottino",
+    "source": "https://unsplash.com/photos/6F5ct471oRk",
+    "licence": "Unsplash License",
+    "alt": "Guitarist and raised hands in green stage light"
+  },
+  {
+    "file": "/images/covers/guitar-mono.webp",
+    "photographer": "Rahul Viswanath",
+    "source": "https://unsplash.com/photos/person-playing-guitar-grayscale-photo-8x_Ki1pdn0A",
+    "licence": "Unsplash License",
+    "alt": "Hand on a guitar neck, black and white"
+  },
+  {
+    "file": "/images/covers/sax-mono.webp",
+    "photographer": "Ayoola Salako",
+    "source": "https://unsplash.com/photos/grayscale-photo-of-person-playing-saxophone-vAOzkqTOpaU",
+    "licence": "Unsplash License",
+    "alt": "Saxophonist's hands on the keys, black and white"
+  },
+  {
+    "file": "/images/covers/trumpet-mono.webp",
+    "photographer": "Gilles Gravier",
+    "source": "https://unsplash.com/photos/a-person-playing-a-trumpet-in-a-black-and-white-photo-g52nSARKp48",
+    "licence": "Unsplash License",
+    "alt": "Hands on trumpet valves, black and white"
+  },
+  {
+    "file": "/images/covers/orchestra-mono.webp",
+    "photographer": "Arindam Mahanta",
+    "source": "https://unsplash.com/photos/VEOk8qUl9DU",
+    "licence": "Unsplash License",
+    "alt": "Orchestra on a theatre stage, black and white"
+  },
+  {
+    "file": "/images/covers/club-beams.webp",
+    "photographer": "Scarlett Alt",
+    "source": "https://unsplash.com/photos/teal-and-purple-nightclub-spotlights-QOajY0MNp8Y",
+    "licence": "Unsplash License",
+    "alt": "Teal and purple spotlights cutting through haze"
+  },
+  {
+    "file": "/images/covers/acoustic-dark.webp",
+    "photographer": "Harshveen Kalsi",
+    "source": "https://unsplash.com/photos/a-close-up-of-an-acoustic-guitar-on-a-black-background-kyCFXYIO0LA",
+    "licence": "Unsplash License",
+    "alt": "Acoustic guitar on a black background"
+  },
+  {
+    "file": "/images/covers/violin-dark.webp",
+    "photographer": "Raymond Petrik",
+    "source": "https://unsplash.com/photos/vwJrH7A3ptM",
+    "licence": "Unsplash License",
+    "alt": "Violin and bow on a black background"
+  },
+  {
+    "file": "/images/covers/drums-spot.webp",
+    "photographer": "Junseong Lee",
+    "source": "https://unsplash.com/photos/ibHyRkRU7t8",
+    "licence": "Unsplash License",
+    "alt": "Drum kit under a spotlight, black and white"
+  },
+  {
+    "file": "/images/covers/red-silhouette.webp",
+    "photographer": "Karsten Winegeart",
+    "source": "https://unsplash.com/photos/ek2R4dOGPsI",
+    "licence": "Unsplash License",
+    "alt": "Lone figure on a stage under red light"
+  },
+  {
+    "file": "/images/covers/sax-blue.webp",
+    "photographer": "Gracious Adebayo",
+    "source": "https://unsplash.com/photos/a-silhouette-of-a-man-playing-a-saxophone-zAPbXrhIfTU",
+    "licence": "Unsplash License",
+    "alt": "Saxophonist in silhouette against a blue sky"
+  },
+  {
+    "file": "/images/covers/horn-section.webp",
+    "photographer": "Jens Thekkeveettil",
+    "source": "https://unsplash.com/photos/person-playing-saxophone-dBWvUqBoOU8",
+    "licence": "Unsplash License",
+    "alt": "Horn section playing saxophones in warm stage light"
+  },
+  {
+    "file": "/images/covers/stage-guitar.webp",
+    "photographer": "Marcus Neto",
+    "source": "https://unsplash.com/photos/gioH4gHo0-g",
+    "licence": "Unsplash License",
+    "alt": "Guitarist on stage facing a blue-lit crowd"
+  },
+  {
+    "file": "/images/covers/violin-studio.webp",
+    "photographer": "Baher Khairy",
+    "source": "https://unsplash.com/photos/uqKyeMaaAOQ",
+    "licence": "Unsplash License",
+    "alt": "Violin and bow lit against black"
+  },
+  {
+    "file": "/images/covers/mic-spot.webp",
+    "photographer": "Brunxs",
+    "source": "https://unsplash.com/photos/dtqlaz4HyHw",
+    "licence": "Unsplash License",
+    "alt": "Microphone in a pool of blue stage light"
+  },
+  {
+    "file": "/images/covers/hands-up.webp",
+    "photographer": "Jerome",
+    "source": "https://unsplash.com/photos/silhouette-photography-of-concert-TGV7pZMzCb4",
+    "licence": "Unsplash License",
+    "alt": "Raised hands in silhouette at a concert"
+  },
+  {
+    "file": "/images/scenes/login.webp",
+    "photographer": "Steven Erixon",
+    "source": "https://unsplash.com/photos/IzwvpT7gGgU",
+    "licence": "Unsplash License",
+    "alt": "Singer in silhouette at a microphone"
+  },
+  {
+    "file": "/images/scenes/register.webp",
+    "photographer": "Robert Arnar",
+    "source": "https://unsplash.com/photos/sedlpOMZ1oU",
+    "licence": "Unsplash License",
+    "alt": "Performer in silhouette in front of a stage spotlight"
+  },
+  {
+    "file": "/images/scenes/not-found.webp",
+    "photographer": "Roberto Rendon",
+    "source": "https://unsplash.com/photos/a-photo-of-a-spot-light-on-a-stage-FU_AO3Al_iQ",
+    "licence": "Unsplash License",
+    "alt": "A single spotlight on a stage above the crowd"
+  },
+  {
+    "file": "/images/scenes/dashboard.webp",
+    "photographer": "Vitalii Khodzinskyi",
+    "source": "https://unsplash.com/photos/Vc4MjbuzTvY",
+    "licence": "Unsplash License",
+    "alt": "Drum kit on a stage in beams of light"
+  },
+  {
+    "file": "/images/scenes/practice.webp",
+    "photographer": "Daniel Wirtz",
+    "source": "https://unsplash.com/photos/jmmTlAPtNw8",
+    "licence": "Unsplash License",
+    "alt": "Guitarist seated alone on a dark stage, black and white"
+  },
+  {
+    "file": "/images/scenes/studio.webp",
+    "photographer": "Oleg Ivanov",
+    "source": "https://unsplash.com/photos/ILybAzFjn5c",
+    "licence": "Unsplash License",
+    "alt": "Singer at a condenser microphone in a studio"
+  },
+  {
+    "file": "/images/scenes/competitions.webp",
+    "photographer": "Bennie Bates",
+    "source": "https://unsplash.com/photos/a-large-crowd-of-people-in-a-dark-room-9lUGIJsf9iw",
+    "licence": "Unsplash License",
+    "alt": "Crowd under sweeping blue concert lights"
+  },
+  {
+    "file": "/images/scenes/leaderboard.webp",
+    "photographer": "A J.",
+    "source": "https://unsplash.com/photos/crowd-in-front-of-stage-Ke6Pr-9A2ac",
+    "licence": "Unsplash License",
+    "alt": "Crowd in front of a blazing stage light show"
+  },
+  {
+    "file": "/images/scenes/challenges.webp",
+    "photographer": "Vitalii Khodzinskyi",
+    "source": "https://unsplash.com/photos/mHc6j2qh13Y",
+    "licence": "Unsplash License",
+    "alt": "Drum kit alone in a spotlight on an empty stage"
+  },
+  {
+    "file": "/images/scenes/social.webp",
+    "photographer": "Negley Stockman",
+    "source": "https://unsplash.com/photos/a-large-crowd-of-people-at-a-concert-qZyZmfAQyTQ",
+    "licence": "Unsplash License",
+    "alt": "Festival crowd in front of an open-air stage at dusk"
+  },
+  {
+    "file": "/images/scenes/profile.webp",
+    "photographer": "Scarlett Alt",
+    "source": "https://unsplash.com/photos/teal-and-purple-nightclub-spotlights-QOajY0MNp8Y",
+    "licence": "Unsplash License",
+    "alt": "Teal and purple spotlights cutting through haze"
+  },
+  {
+    "file": "/images/empty-states/performances.webp",
+    "photographer": "Roger Ce",
+    "source": "https://unsplash.com/photos/a-guitar-leaning-against-a-wall-6D0_Y72T-TI",
+    "licence": "Unsplash License",
+    "alt": "Bass guitar leaning against a wall in window light"
+  },
+  {
+    "file": "/images/empty-states/analysis.webp",
+    "photographer": "Matthias Wagner",
+    "source": "https://unsplash.com/photos/QrqeusbpFMM",
+    "licence": "Unsplash License",
+    "alt": "Microphone on a stand, waiting"
+  },
+  {
+    "file": "/images/empty-states/competitions.webp",
+    "photographer": "Rodrigo Ruiz",
+    "source": "https://unsplash.com/photos/rM5ZHrQvUCc",
+    "licence": "Unsplash License",
+    "alt": "Concert hall seen from the balcony"
+  },
+  {
+    "file": "/images/empty-states/practice.webp",
+    "photographer": "Ria Nurul Kamariah",
+    "source": "https://unsplash.com/photos/Ro7BTZEuqwE",
+    "licence": "Unsplash License",
+    "alt": "Violin resting on sheet music"
+  },
+  {
+    "file": "/images/empty-states/leaderboard.webp",
+    "photographer": "Leandro Mazzuquini",
+    "source": "https://unsplash.com/photos/acoustic-guitar-on-sofa-ZIbrlLp63PY",
+    "licence": "Unsplash License",
+    "alt": "Acoustic guitar resting on a sofa"
+  },
+  {
+    "file": "/images/empty-states/social.webp",
+    "photographer": "Jason Leung",
+    "source": "https://unsplash.com/photos/q7ZfVmvB49c",
+    "licence": "Unsplash License",
+    "alt": "Headphones on a dark table"
+  },
+  {
+    "file": "/images/empty-states/generic.webp",
+    "photographer": "Rajesh Kavasseri",
+    "source": "https://unsplash.com/photos/KYnWHy3hMk0",
+    "licence": "Unsplash License",
+    "alt": "Flute resting on sheet music in warm light"
+  }
+]

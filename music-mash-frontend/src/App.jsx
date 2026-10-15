@@ -22,6 +22,7 @@ const JudgeDashboard = lazy(() => import('./pages/judge/JudgeDashboard'))
 const CompetitionPage = lazy(() => import('./pages/competition/CompetitionPage'))
 const LeaderboardPage = lazy(() => import('./pages/leaderboard/LeaderboardPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+const CreditsPage = lazy(() => import('./pages/CreditsPage'))
 // Dev-only component gallery; the import is dropped from production builds.
 const StyleguidePage = import.meta.env.DEV ? lazy(() => import('./pages/dev/StyleguidePage')) : null
 
@@ -40,6 +41,7 @@ const AppRoutes = () => {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/credits" element={<CreditsPage />} />
 
           <Route path="/onboarding" element={protectedPage(OnboardingPage)} />
           <Route path="/dashboard" element={protectedPage(DashboardPage)} />

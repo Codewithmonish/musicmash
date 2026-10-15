@@ -30,7 +30,8 @@ export const instrumentImage = (instrument) =>
   IMAGES.instruments[String(instrument || '').toLowerCase()] ?? coverFor(instrument)
 
 /** The photo for a genre / performance category like "HIP_HOP" (falls back to a cover). */
+const GENRE_ALIASES = { randb: 'rnb', hip: 'hiphop' }
 export const genreImage = (genre) => {
   const key = String(genre || '').toLowerCase().replace(/[^a-z]/g, '')
-  return IMAGES.genres[key] ?? coverFor(genre)
+  return IMAGES.genres[GENRE_ALIASES[key] ?? key] ?? coverFor(genre)
 }

@@ -1,8 +1,386 @@
 {
-  "hero": [],
-  "genres": {},
-  "instruments": {},
-  "covers": [],
-  "scenes": {},
-  "emptyStates": {}
+  "hero": [
+    {
+      "src": "/images/hero/crowd-blue-stage.webp",
+      "alt": "Concert crowd in silhouette in front of a stage washed in blue light",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "src": "/images/hero/guitarist-smoke.webp",
+      "alt": "Guitarist in silhouette on a smoky stage, black and white",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "src": "/images/hero/dj-hands-purple.webp",
+      "alt": "A DJ's hand over glowing decks in purple and red light",
+      "width": 1920,
+      "height": 1080
+    }
+  ],
+  "genres": {
+    "hiphop": {
+      "src": "/images/genres/hiphop.webp",
+      "alt": "Rapper with a microphone in low stage light",
+      "width": 600,
+      "height": 600
+    },
+    "jazz": {
+      "src": "/images/genres/jazz.webp",
+      "alt": "Saxophonist silhouetted against a pink-lit jazz bar",
+      "width": 600,
+      "height": 600
+    },
+    "classical": {
+      "src": "/images/genres/classical.webp",
+      "alt": "Violin section of an orchestra in dim light",
+      "width": 600,
+      "height": 600
+    },
+    "rock": {
+      "src": "/images/genres/rock.webp",
+      "alt": "Long-haired guitarist playing an electric guitar on stage",
+      "width": 600,
+      "height": 600
+    },
+    "pop": {
+      "src": "/images/genres/pop.webp",
+      "alt": "Singer in a black dress under stage spotlights",
+      "width": 600,
+      "height": 600
+    },
+    "electronic": {
+      "src": "/images/genres/electronic.webp",
+      "alt": "Synthesizer and studio monitor in red and purple light",
+      "width": 600,
+      "height": 600
+    },
+    "folk": {
+      "src": "/images/genres/folk.webp",
+      "alt": "Hands playing an acoustic guitar",
+      "width": 600,
+      "height": 600
+    },
+    "rnb": {
+      "src": "/images/genres/rnb.webp",
+      "alt": "Three singers in silhouette at microphones in blue haze",
+      "width": 600,
+      "height": 600
+    }
+  },
+  "instruments": {
+    "piano": {
+      "src": "/images/instruments/piano.webp",
+      "alt": "Piano keys in dramatic close-up",
+      "width": 600,
+      "height": 600
+    },
+    "guitar": {
+      "src": "/images/instruments/guitar.webp",
+      "alt": "Hands on an electric guitar under blue stage light",
+      "width": 600,
+      "height": 600
+    },
+    "violin": {
+      "src": "/images/instruments/violin.webp",
+      "alt": "Violinist's hands on the strings and bow",
+      "width": 600,
+      "height": 600
+    },
+    "drums": {
+      "src": "/images/instruments/drums.webp",
+      "alt": "Drummer's sticks hitting a drum kit",
+      "width": 600,
+      "height": 600
+    },
+    "bass": {
+      "src": "/images/instruments/bass.webp",
+      "alt": "Close-up of hands playing a bass guitar",
+      "width": 600,
+      "height": 600
+    },
+    "vocals": {
+      "src": "/images/instruments/vocals.webp",
+      "alt": "Vintage microphone in warm bokeh light",
+      "width": 600,
+      "height": 600
+    },
+    "flute": {
+      "src": "/images/instruments/flute.webp",
+      "alt": "Hands playing a flute against a black background",
+      "width": 600,
+      "height": 600
+    },
+    "saxophone": {
+      "src": "/images/instruments/saxophone.webp",
+      "alt": "Brass saxophone against a black background",
+      "width": 600,
+      "height": 600
+    },
+    "trumpet": {
+      "src": "/images/instruments/trumpet.webp",
+      "alt": "Trumpet player at night in warm light",
+      "width": 600,
+      "height": 600
+    },
+    "cello": {
+      "src": "/images/instruments/cello.webp",
+      "alt": "Cellist's hands and bow on a cello",
+      "width": 600,
+      "height": 600
+    }
+  },
+  "covers": [
+    {
+      "src": "/images/covers/laser-rig.webp",
+      "alt": "Stage lighting rig with a teal beam",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/festival-night.webp",
+      "alt": "Festival crowd facing a brightly lit stage at night",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/mixer-blue.webp",
+      "alt": "DJ mixer glowing blue in the dark",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/dj-outdoor.webp",
+      "alt": "DJ's hands on a controller at an outdoor party",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/mic-violet.webp",
+      "alt": "Vintage silver microphone against a violet background",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/headphones.webp",
+      "alt": "Headphones on black, black and white",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/piano-mono.webp",
+      "alt": "Piano keys in black and white",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/green-crowd.webp",
+      "alt": "Guitarist and raised hands in green stage light",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/guitar-mono.webp",
+      "alt": "Hand on a guitar neck, black and white",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/sax-mono.webp",
+      "alt": "Saxophonist's hands on the keys, black and white",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/trumpet-mono.webp",
+      "alt": "Hands on trumpet valves, black and white",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/orchestra-mono.webp",
+      "alt": "Orchestra on a theatre stage, black and white",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/club-beams.webp",
+      "alt": "Teal and purple spotlights cutting through haze",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/acoustic-dark.webp",
+      "alt": "Acoustic guitar on a black background",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/violin-dark.webp",
+      "alt": "Violin and bow on a black background",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/drums-spot.webp",
+      "alt": "Drum kit under a spotlight, black and white",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/red-silhouette.webp",
+      "alt": "Lone figure on a stage under red light",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/sax-blue.webp",
+      "alt": "Saxophonist in silhouette against a blue sky",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/horn-section.webp",
+      "alt": "Horn section playing saxophones in warm stage light",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/stage-guitar.webp",
+      "alt": "Guitarist on stage facing a blue-lit crowd",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/violin-studio.webp",
+      "alt": "Violin and bow lit against black",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/mic-spot.webp",
+      "alt": "Microphone in a pool of blue stage light",
+      "width": 600,
+      "height": 600
+    },
+    {
+      "src": "/images/covers/hands-up.webp",
+      "alt": "Raised hands in silhouette at a concert",
+      "width": 600,
+      "height": 600
+    }
+  ],
+  "emptyStates": {
+    "performances": {
+      "src": "/images/empty-states/performances.webp",
+      "alt": "Bass guitar leaning against a wall in window light",
+      "width": 600,
+      "height": 600
+    },
+    "analysis": {
+      "src": "/images/empty-states/analysis.webp",
+      "alt": "Microphone on a stand, waiting",
+      "width": 600,
+      "height": 600
+    },
+    "competitions": {
+      "src": "/images/empty-states/competitions.webp",
+      "alt": "Concert hall seen from the balcony",
+      "width": 600,
+      "height": 600
+    },
+    "practice": {
+      "src": "/images/empty-states/practice.webp",
+      "alt": "Violin resting on sheet music",
+      "width": 600,
+      "height": 600
+    },
+    "leaderboard": {
+      "src": "/images/empty-states/leaderboard.webp",
+      "alt": "Acoustic guitar resting on a sofa",
+      "width": 600,
+      "height": 600
+    },
+    "social": {
+      "src": "/images/empty-states/social.webp",
+      "alt": "Headphones on a dark table",
+      "width": 600,
+      "height": 600
+    },
+    "generic": {
+      "src": "/images/empty-states/generic.webp",
+      "alt": "Flute resting on sheet music in warm light",
+      "width": 600,
+      "height": 600
+    }
+  },
+  "scenes": {
+    "login": {
+      "src": "/images/scenes/login.webp",
+      "alt": "Singer in silhouette at a microphone",
+      "width": 1000,
+      "height": 1250
+    },
+    "register": {
+      "src": "/images/scenes/register.webp",
+      "alt": "Performer in silhouette in front of a stage spotlight",
+      "width": 1000,
+      "height": 1250
+    },
+    "notFound": {
+      "src": "/images/scenes/not-found.webp",
+      "alt": "A single spotlight on a stage above the crowd",
+      "width": 1000,
+      "height": 1250
+    },
+    "dashboard": {
+      "src": "/images/scenes/dashboard.webp",
+      "alt": "Drum kit on a stage in beams of light",
+      "width": 1600,
+      "height": 700
+    },
+    "practice": {
+      "src": "/images/scenes/practice.webp",
+      "alt": "Guitarist seated alone on a dark stage, black and white",
+      "width": 1600,
+      "height": 700
+    },
+    "studio": {
+      "src": "/images/scenes/studio.webp",
+      "alt": "Singer at a condenser microphone in a studio",
+      "width": 1600,
+      "height": 700
+    },
+    "competitions": {
+      "src": "/images/scenes/competitions.webp",
+      "alt": "Crowd under sweeping blue concert lights",
+      "width": 1600,
+      "height": 700
+    },
+    "leaderboard": {
+      "src": "/images/scenes/leaderboard.webp",
+      "alt": "Crowd in front of a blazing stage light show",
+      "width": 1600,
+      "height": 700
+    },
+    "challenges": {
+      "src": "/images/scenes/challenges.webp",
+      "alt": "Drum kit alone in a spotlight on an empty stage",
+      "width": 1600,
+      "height": 700
+    },
+    "social": {
+      "src": "/images/scenes/social.webp",
+      "alt": "Festival crowd in front of an open-air stage at dusk",
+      "width": 1600,
+      "height": 700
+    },
+    "profile": {
+      "src": "/images/scenes/profile.webp",
+      "alt": "Teal and purple spotlights cutting through haze",
+      "width": 1600,
+      "height": 700
+    }
+  }
 }
