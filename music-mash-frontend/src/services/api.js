@@ -5,6 +5,9 @@ import axios from 'axios'
 const configuredBase = (import.meta.env.VITE_API_URL || 'http://localhost:8081/api').replace(/\/+$/, '')
 const API_BASE_URL = configuredBase.endsWith('/api') ? configuredBase : `${configuredBase}/api`
 
+/** Absolute URL for an uploaded file reference such as "/uploads/<file>.wav" (served by Spring). */
+export const mediaUrl = (path) => (path && path.startsWith('/uploads/') ? `${API_BASE_URL.replace(/\/api$/, '')}${path}` : path)
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
