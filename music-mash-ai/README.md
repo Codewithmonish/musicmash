@@ -15,6 +15,9 @@ This is a standalone Python FastAPI service that processes music performances us
   A metric that can't be measured is `null` with a reason, never a guess.
 - **Skill summary**: strengths, weaknesses and drills triggered by documented thresholds; a
   rule-based level (a trained model replaces it in Phase 6)
+- **Reference comparison** (Phase 3): align a take with an original recording using Dynamic
+  Time Warping, then report similarity, tempo over time and problem sections (sharp, flat,
+  rushing, dragging, missing notes). Explained in [docs/ALIGNMENT.md](docs/ALIGNMENT.md).
 - **Video**: frame and metadata extraction with OpenCV (no video-based scoring yet)
 - **Practice Recommendations**: Generate personalized practice suggestions
 - **Background Processing**: Asynchronous analysis using FastAPI BackgroundTasks
@@ -219,6 +222,18 @@ Get the complete result of an analysis (abridged below; see `/docs` for every fi
 
 If the audio can't be loaded or analysed, the analysis status becomes `FAILED` with the
 reason in `error_message`.
+
+### Reference comparison (Phase 3)
+
+| Method & path | What it does |
+|---|---|
+| `POST /api/ai/references` | `{title, artist?, instrument?, audio_file}`: register an upload as a reference; features are precomputed in the background (Spring allows HOST/ADMIN only) |
+| `GET /api/ai/references[/{id}]` | List / get reference tracks (`status` COMPLETED = ready) |
+| `POST /api/ai/compare` | `{user_id, reference_id, performance_audio_file \| analysis_id}`: queue a comparison |
+| `GET /api/ai/compare/{id}/status` | PENDING / PROCESSING / COMPLETED / FAILED |
+| `GET /api/ai/compare/{id}/result` | similarity, tempo ratio and curve, 4-second segments, problem sections, DTW path |
+
+References are cut at 3 minutes and takes at 4.5 minutes; every step's duration is logged.
 
 ## Database Schema
 

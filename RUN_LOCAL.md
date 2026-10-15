@@ -54,14 +54,22 @@ Logs go to `logs\spring.log`, `logs\fastapi.log` and `logs\vite.log` (plus `*.er
 music-mash-ai\.venv\Scripts\python scripts\demo_seed.py
 ```
 
-This generates a 12-note C-major melody at 120 BPM in which **only the E4 is 40 cents sharp**.
-It then goes through the real Spring API, exactly as the app would:
-1. registers or logs in `demo@musicmash.local` (password `demo-pass-123`, a local dev account)
-2. uploads the WAV and creates a performance
-3. requests the analysis and waits for it to finish
+This generates two recordings of the same 24-note tune (120 BPM, 12 s):
+- **the reference**, played perfectly
+- **your take**, with planted mistakes:
+  - the E4 at 1 s is 40 cents sharp
+  - seconds 4–8 are 35 cents sharp
+  - seconds 8–12 are 20% faster
 
-It prints the measured notes and scores, then the page URL, e.g.
-`http://localhost:5173/ai-analysis/4`. Log in there as the demo user.
+It then goes through the real Spring API, exactly as the app would:
+1. As `demo@musicmash.local` (password `demo-pass-123`, a local dev account): uploads the
+   take, creates a performance and runs the AI analysis.
+2. As `host@musicmash.local` (role HOST): uploads the reference and registers it as a
+   reference track. Later runs reuse it.
+3. As the demo user again: compares the analysed take with the reference.
+
+It prints the measured notes, scores and problem sections, then the page URL, e.g.
+`http://localhost:5173/ai-analysis/5?comparison=1`. Log in there as the demo user.
 
 ## Screenshots (Playwright)
 
@@ -82,10 +90,12 @@ It logs in through the login form and opens the demo analysis. Output goes to
 | `ai-analysis-full.png` | the whole AI Analysis page |
 | `pitch-chart.png` | the pitch-curve card |
 | `pitch-chart-hover.png` | the chart with the tooltip on the sharp E4 |
+| `comparison.png` | the "How close am I to the original?" card: similarity, timeline, tempo chart |
+| `comparison-detail.png` | the same card after clicking the first problem section |
 | `console.txt` | browser console errors, page errors and failed API calls (`no errors` when clean) |
 
-The script exits with code 1 if the chart doesn't render, the sharp-note tooltip isn't
-found, or anything was logged in `console.txt`.
+The script exits with code 1 if the chart or the comparison timeline doesn't render, the
+sharp-note tooltip isn't found, or anything was logged in `console.txt`.
 
 ## After a schema change
 
