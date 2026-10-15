@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { FiPlay } from 'react-icons/fi'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { cn } from '../../utils/cn'
 import CoverImage from './CoverImage'
 
@@ -34,10 +34,15 @@ const TrackCard = ({ title, subtitle, image, alt, seed, to, onClick, meta, class
   )
 }
 
-/** Grid of tiles: 6 columns on desktop, 3 on tablets, 2 on phones; tiles reveal with a stagger. */
-export const TileGrid = ({ children, className }) => (
+/**
+ * Grid of tiles: 6 columns on desktop, 3 on tablets, 2 on phones; tiles reveal with a stagger
+ * as they scroll into view. With reduced motion they are simply shown.
+ */
+export const TileGrid = ({ children, className }) => {
+  const reduceMotion = useReducedMotion()
+  return (
   <motion.div
-    initial="hidden"
+    initial={reduceMotion ? false : 'hidden'}
     whileInView="show"
     viewport={{ once: true, margin: '-40px' }}
     variants={{ show: { transition: { staggerChildren: 0.05 } } }}
@@ -45,7 +50,8 @@ export const TileGrid = ({ children, className }) => (
   >
     {children}
   </motion.div>
-)
+  )
+}
 
 export const TileItem = ({ children, className }) => (
   <motion.div

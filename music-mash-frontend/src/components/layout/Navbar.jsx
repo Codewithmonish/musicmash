@@ -24,7 +24,7 @@ const navLinkClass = ({ isActive }) =>
  * Global navigation. Over a hero (transparent=true) it starts transparent and turns solid
  * Obsidian once the page scrolls; everywhere else it is solid from the start.
  */
-const Navbar = ({ transparent = false }) => {
+const Navbar = ({ transparent = false, banner }) => {
   const { isAuthenticated, user, logout } = useAuth()
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -49,6 +49,7 @@ const Navbar = ({ transparent = false }) => {
   return (
     <header className={cn('fixed inset-x-0 top-0 z-40 transition-colors duration-200',
       solid ? 'bg-obsidian shadow-[inset_0_-1px_0_#303030]' : 'bg-transparent')}>
+      {banner}
       <nav aria-label="Main" className="page flex h-16 items-center justify-between gap-6">
         <Wordmark to={isAuthenticated ? '/dashboard' : '/'} />
 

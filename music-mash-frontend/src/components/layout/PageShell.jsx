@@ -6,14 +6,14 @@ import Footer from './Footer'
 /**
  * Standard page frame: navigation, a page-transition wrapper for the content, and the footer.
  * `hero` pages put their own full-bleed hero first and get a transparent nav over it;
- * other pages get a solid nav and 64px of top offset.
+ * other pages get a solid nav and 64px of top offset. An optional `banner` (PromoBanner) sits
+ * inside the fixed header, above the navigation.
  */
 const PageShell = ({ children, hero = false, footer = true, className, banner }) => {
   const reduceMotion = useReducedMotion()
   return (
     <div className="flex min-h-screen flex-col bg-obsidian">
-      {banner}
-      <Navbar transparent={hero} />
+      <Navbar transparent={hero} banner={banner} />
       <motion.main
         id="main"
         initial={reduceMotion ? false : { opacity: 0, y: 8 }}

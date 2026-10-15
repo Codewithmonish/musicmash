@@ -64,32 +64,37 @@ const toChartRows = (points, bands) => {
   })
 }
 
-// Y ticks on note names. At most ~13 labels fit the chart height without overlapping, so:
-// every semitone for up to an octave, natural notes (no sharps) up to two octaves, and only
-// the Cs beyond that. All returned ticks are drawn (interval={0}); recharts would otherwise
-// silently drop "colliding" labels, which hid E4 and B4 in the first screenshot.
-const noteTicks = (low, high) => {
+// Y ticks on note names. Labels need ~22px each, so the density depends on the range and the
+// chart height: every semitone, natural notes only, C-E-G, or only the Cs, whichever fits first.
+// All returned ticks are drawn (interval={0}); recharts would otherwise silently drop
+// "colliding" labels, which once hid E4 and B4.
+const noteTicks = (low, high, height) => {
+  const fits = Math.max(3, Math.floor((height - 40) / 22))
   const all = Array.from({ length: high - low + 1 }, (_, i) => low + i)
-  const span = high - low
-  if (span <= 12) return all
-  if (span <= 24) return all.filter((m) => !NOTE_NAMES[((m % 12) + 12) % 12].includes('#'))
-  return all.filter((m) => m % 12 === 0)
+  const pitchClass = (m) => ((m % 12) + 12) % 12
+  const levels = [
+    all,
+    all.filter((m) => !NOTE_NAMES[pitchClass(m)].includes('#')),
+    all.filter((m) => [0, 4, 7].includes(pitchClass(m))),
+    all.filter((m) => pitchClass(m) === 0),
+  ]
+  return levels.find((ticks) => ticks.length <= fits) ?? levels[levels.length - 1]
 }
 
 const ContourTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null
   const point = payload[0].payload
   return (
-    <div className="rounded-lg border border-white/10 bg-[#0d0d13]/95 px-3 py-2 text-xs shadow-xl">
-      <div className="text-muted">{point.t.toFixed(2)} s</div>
-      <div className="font-semibold text-white">
+    <div className="rounded bg-graphite px-3 py-2 text-caption shadow-subtle">
+      <div className="text-fog">{point.t.toFixed(2)} s</div>
+      <div className="text-body-sm font-semibold text-white">
         {point.voiced ? `${midiToNoteName(point.midi_float)} · ${describeCents(point.cents_off)}` : 'No pitch'}
       </div>
     </div>
   )
 }
 
-const PitchContourChart = ({ points, notes, mode = 'reference-free', height = 340 }) => {
+const PitchContourChart = ({ points, notes, mode = 'reference-free', height = 340, brush = true, legend = true }) => {
   const bands = useMemo(() => bandsFor(mode), [mode])
   const rows = useMemo(() => toChartRows(points, bands), [points, bands])
 
@@ -107,7 +112,7 @@ const PitchContourChart = ({ points, notes, mode = 'reference-free', height = 34
     <div>
       <ResponsiveContainer width="100%" height={height}>
         <ComposedChart data={rows} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
-          <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" />
+          <CartesianGrid vertical={false} stroke="#303030" />
           {notes.map((note) => (
             <ReferenceArea
               key={`${note.start}-${note.midi}`}
@@ -116,9 +121,9 @@ const PitchContourChart = ({ points, notes, mode = 'reference-free', height = 34
               y1={note.midi - 0.25}
               y2={note.midi + 0.25}
               fill="#ffffff"
-              fillOpacity={0.12}
+              fillOpacity={0.14}
               stroke="none"
-              radius={4}
+              radius={2}
               ifOverflow="hidden"
             />
           ))}
@@ -127,21 +132,21 @@ const PitchContourChart = ({ points, notes, mode = 'reference-free', height = 34
             type="number"
             domain={['dataMin', 'dataMax']}
             tickFormatter={(t) => `${t.toFixed(1)}s`}
-            stroke="rgba(255,255,255,0.35)"
-            tick={{ fontSize: 11 }}
+            stroke="#666666"
+            tick={{ fontSize: 12, fill: '#999999' }}
           />
           <YAxis
             type="number"
             domain={[low, high]}
-            ticks={noteTicks(low, high)}
+            ticks={noteTicks(low, high, height)}
             interval={0}
             tickFormatter={midiToNoteName}
-            stroke="rgba(255,255,255,0.35)"
-            tick={{ fontSize: 11 }}
+            stroke="#666666"
+            tick={{ fontSize: 12, fill: '#999999' }}
             width={44}
             allowDataOverflow
           />
-          <Tooltip content={<ContourTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.3)' }} isAnimationActive={false} />
+          <Tooltip content={<ContourTooltip />} cursor={{ stroke: '#999999' }} isAnimationActive={false} />
           {usedBands.map((band) => (
             <Line
               key={band.key}
@@ -156,23 +161,23 @@ const PitchContourChart = ({ points, notes, mode = 'reference-free', height = 34
               isAnimationActive={false}
             />
           ))}
-          {rows.length > 1 && (
+          {brush && rows.length > 1 && (
             <Brush
               dataKey="t"
               height={24}
               travellerWidth={8}
-              stroke="rgba(255,255,255,0.35)"
-              fill="rgba(255,255,255,0.04)"
+              stroke="#666666"
+              fill="#1b1b1b"
               tickFormatter={(t) => `${t.toFixed(1)}s`}
             />
           )}
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted">
+      {legend && <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-caption text-fog">
         {usedBands.map((band) => (
           <span key={band.key} className="flex items-center gap-2">
-            <span className="inline-block h-0.5 w-5 rounded" style={{ backgroundColor: band.color }} />
+            <span className="inline-block h-0.5 w-5" style={{ backgroundColor: band.color }} />
             {band.label}
           </span>
         ))}
@@ -180,8 +185,8 @@ const PitchContourChart = ({ points, notes, mode = 'reference-free', height = 34
           <span className="inline-block h-2 w-5 rounded bg-white/20" />
           Detected note
         </span>
-        <span>Drag the handles under the chart to zoom.</span>
-      </div>
+        {brush && <span>Drag the handles under the chart to zoom.</span>}
+      </div>}
     </div>
   )
 }

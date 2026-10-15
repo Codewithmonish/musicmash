@@ -28,7 +28,7 @@ const PromoBanner = ({ children, linkTo, linkLabel }) => {
     }
   }
   return (
-    <div className="relative z-50 bg-obsidian">
+    <div className="relative bg-obsidian">
       <div className="page flex min-h-8 items-center justify-center gap-2 py-1 pr-10 text-center text-body-sm text-white">
         <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-signal" />
         <span>
