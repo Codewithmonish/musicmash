@@ -75,7 +75,7 @@
     color: var(--color-obsidian);
   }
 
-  /* Visible keyboard focus everywhere: 2px white outline (Signal Blue on the light band). */
+  /* Visible keyboard focus everywhere: 2px white outline (Obsidian on the light band). */
   :focus-visible {
     outline: 2px solid var(--color-white);
     outline-offset: 2px;

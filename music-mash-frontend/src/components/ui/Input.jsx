@@ -18,7 +18,7 @@ const Input = forwardRef(({ label, hint, error, icon: Icon, className, inputClas
           aria-describedby={error || hint ? `${fieldId}-help` : undefined}
           className={cn(
             'w-full rounded bg-graphite shadow-subtle px-4 py-3 text-body-sm text-white placeholder:text-fog',
-            'transition-colors duration-150 focus:bg-mid-gray focus:outline-none',
+            'transition-colors duration-150 focus:bg-mid-gray',
             Icon && 'pr-11',
             error && 'shadow-[inset_0_0_0_1px_#d03b3b]',
             inputClassName,

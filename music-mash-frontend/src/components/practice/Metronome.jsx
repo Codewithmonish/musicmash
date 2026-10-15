@@ -44,7 +44,7 @@ const Metronome = ({ bpm, setBpm, timeSignature, setTimeSignature }) => {
         <div className="text-center">
           <input type="number" min={MIN_BPM} max={MAX_BPM} value={bpm} aria-label="Beats per minute"
             onChange={(e) => setBpm(clampBpm(e.target.value))}
-            className="w-28 bg-transparent text-center text-display font-thin text-white focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
+            className="w-28 bg-transparent text-center text-display font-thin text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
           <p className="text-caption text-fog">BPM</p>
         </div>
         <button type="button" onClick={() => setBpm(clampBpm(bpm + 1))} aria-label="Faster"

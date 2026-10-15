@@ -142,7 +142,7 @@ const ProfilePage = () => {
               <label key={key} className="flex flex-col gap-2">
                 <span className="text-body-sm font-semibold text-white">{label}</span>
                 <select value={form[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                  className="rounded bg-obsidian px-4 py-3 text-body-sm text-white focus:bg-mid-gray focus:outline-none">
+                  className="rounded bg-obsidian px-4 py-3 text-body-sm text-white focus:bg-mid-gray">
                   {options.map(([id, text]) => <option key={id} value={id}>{text}</option>)}
                 </select>
               </label>

@@ -10,9 +10,6 @@ const VARIANTS = {
   inverse: 'bg-obsidian text-white font-bold hover:bg-graphite',          // primary on the light band
   danger: 'bg-transparent text-white font-semibold shadow-subtle hover:bg-graphite',
 }
-// Names used by pages written before the redesign, mapped onto the new set.
-const LEGACY = { accent: 'primary', secondary: 'subtle', outline: 'subtle' }
-
 const SIZES = {
   sm: 'h-8 px-3 text-caption',
   md: 'h-10 px-4 text-body-sm',
@@ -24,8 +21,8 @@ const Button = forwardRef(({ children, variant = 'primary', size = 'md', to, hre
   const classes = cn(
     'inline-flex items-center justify-center gap-2 rounded whitespace-nowrap transition-colors duration-150',
     'disabled:opacity-40 disabled:pointer-events-none select-none',
-    VARIANTS[LEGACY[variant] || variant] || VARIANTS.primary,
-    SIZES[size === 'xl' ? 'lg' : size] || SIZES.md,
+    VARIANTS[variant] || VARIANTS.primary,
+    SIZES[size] || SIZES.md,
     className,
   )
   const content = (

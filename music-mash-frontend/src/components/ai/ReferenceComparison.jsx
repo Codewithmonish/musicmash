@@ -81,7 +81,7 @@ const ReferenceComparison = ({ analysisId }) => {
               onChange={(e) => setReferenceId(e.target.value)}
               disabled={!references || status === 'running'}
               aria-label="Reference track"
-              className="w-full rounded bg-obsidian px-4 py-3 text-body-sm text-white focus:bg-mid-gray focus:outline-none sm:w-auto sm:min-w-[18rem]"
+              className="w-full rounded bg-obsidian px-4 py-3 text-body-sm text-white focus:bg-mid-gray sm:w-auto sm:min-w-[18rem]"
             >
               {(references || []).map((r) => (
                 <option key={r.id} value={r.id}>{r.title}{r.artist ? ` — ${r.artist}` : ''}</option>

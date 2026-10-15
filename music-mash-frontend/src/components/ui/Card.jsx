@@ -7,11 +7,9 @@ const VARIANTS = {
   panel: 'bg-graphite shadow-subtle p-4',
   outline: 'shadow-[inset_0_0_0_1px_#303030] p-4',
 }
-// Variant names from before the redesign.
-const LEGACY = { glass: 'panel', glow: 'panel', gradient: 'panel', default: 'panel', elevated: 'panel' }
 
-const Card = ({ children, className, variant = 'panel', as: Tag = 'div', hover, glow, ...props }) => (
-  <Tag className={cn(VARIANTS[LEGACY[variant] || variant] ?? VARIANTS.panel, className)} {...props}>
+const Card = ({ children, className, variant = 'panel', as: Tag = 'div', ...props }) => (
+  <Tag className={cn(VARIANTS[variant] ?? VARIANTS.panel, className)} {...props}>
     {children}
   </Tag>
 )

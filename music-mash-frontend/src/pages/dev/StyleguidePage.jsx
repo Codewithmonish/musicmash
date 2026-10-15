@@ -16,6 +16,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import EqualizerBars from '../../components/ui/EqualizerBars'
 import ProgressRing from '../../components/ui/ProgressRing'
 import GeneratedCover from '../../components/ui/GeneratedCover'
+import Avatar from '../../components/ui/Avatar'
 import { IMAGES } from '../../utils/images'
 
 // Dev-only gallery of every token and component (route /styleguide, not in production builds).
@@ -132,6 +133,8 @@ const StyleguidePage = () => {
           <div className="mt-8 flex items-center gap-10">
             <ProgressRing progress={72} label="72" sublabel="Intonation" />
             <EqualizerBars count={5} label="Processing" />
+            <Avatar name="MusicMash" />
+            <Avatar name="Ada" className="h-20 w-20" textClassName="text-heading font-thin" />
           </div>
           <EmptyState className="mt-8" image={IMAGES.emptyStates.performances?.src} imageAlt={IMAGES.emptyStates.performances?.alt}
             title="No performances yet" body="Record or upload a take and it shows up here with its measured scores."
