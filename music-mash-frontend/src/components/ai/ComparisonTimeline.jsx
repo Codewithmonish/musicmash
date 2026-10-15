@@ -33,8 +33,8 @@ const TempoTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null
   const point = payload[0].payload
   return (
-    <div className="rounded-lg border border-white/10 bg-[#0d0d13]/95 px-3 py-2 text-xs shadow-xl">
-      <div className="text-muted">at {point.ref_time.toFixed(1)} s of the original</div>
+    <div className="rounded bg-graphite px-3 py-2 text-caption shadow-subtle">
+      <div className="text-fog">at {point.ref_time.toFixed(1)} s of the original</div>
       <div className="font-semibold text-white">{point.tempo_ratio.toFixed(2)}× · {describeTempo(point.tempo_ratio)}</div>
     </div>
   )
@@ -77,22 +77,22 @@ const ComparisonTimeline = ({ result }) => {
     <div className="space-y-5">
       {/* Headline numbers */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-          <div className="text-[11px] font-mono uppercase text-muted">Similarity</div>
-          <div className="text-3xl font-display font-bold text-white">{Math.round(result.similarity)}<span className="text-sm text-muted">/100</span></div>
+        <div className="p-4 bg-graphite shadow-subtle">
+          <div className="text-caption text-fog">Similarity</div>
+          <div className="text-heading-sm font-semibold text-white">{Math.round(result.similarity)}<span className="text-body-sm text-fog">/100</span></div>
           {result.played_similarity != null && Math.round(result.played_similarity) !== Math.round(result.similarity) && (
-            <p className="text-[11px] text-muted mt-1">{Math.round(result.played_similarity)}/100 where you play (missing passages lower the overall score)</p>
+            <p className="text-caption text-fog mt-1">{Math.round(result.played_similarity)}/100 where you play (missing passages lower the overall score)</p>
           )}
         </div>
-        <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-          <div className="text-[11px] font-mono uppercase text-muted">Overall tempo</div>
-          <div className="text-3xl font-display font-bold text-white">{result.tempo_ratio.toFixed(2)}×</div>
-          <p className="text-[11px] text-muted mt-1">{describeTempo(result.tempo_ratio)}</p>
+        <div className="p-4 bg-graphite shadow-subtle">
+          <div className="text-caption text-fog">Overall tempo</div>
+          <div className="text-heading-sm font-semibold text-white">{result.tempo_ratio.toFixed(2)}×</div>
+          <p className="text-caption text-fog mt-1">{describeTempo(result.tempo_ratio)}</p>
         </div>
-        <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-          <div className="text-[11px] font-mono uppercase text-muted">Compared with</div>
-          <div className="text-lg font-display font-bold text-white truncate">{result.reference.title}</div>
-          <p className="text-[11px] text-muted mt-1">
+        <div className="p-4 bg-graphite shadow-subtle">
+          <div className="text-caption text-fog">Compared with</div>
+          <div className="text-subheading font-semibold text-white truncate">{result.reference.title}</div>
+          <p className="text-caption text-fog mt-1">
             {result.reference.artist ? `${result.reference.artist} · ` : ''}{clock(duration)} long
             {result.truncated ? ' · only the first 3 minutes were compared' : ''}
           </p>
@@ -100,18 +100,18 @@ const ComparisonTimeline = ({ result }) => {
       </div>
 
       {!result.reliable && (
-        <div className="p-3 rounded-xl border border-warning/30 bg-warning/10 text-xs text-white">{result.unreliable_reason}</div>
+        <div className="p-3 bg-graphite shadow-subtle text-caption text-white">{result.unreliable_reason}</div>
       )}
 
       {/* Timeline of the reference with problem sections */}
       {result.reliable && (
         <div>
-          <h4 className="text-xs font-mono uppercase text-muted mb-2">Where it differs from the original (click a block)</h4>
+          <h4 className="text-body-sm font-semibold text-white mb-2">Where it differs from the original (click a block)</h4>
           <div className="space-y-1.5">
             {LANES.map((lane) => (
               <div key={lane.key} className="flex items-center gap-3">
-                <span className="w-12 shrink-0 text-[11px] text-muted">{lane.label}</span>
-                <div className="relative h-7 flex-1 rounded-md bg-white/5">
+                <span className="w-12 shrink-0 text-caption text-fog">{lane.label}</span>
+                <div className="relative h-7 flex-1 rounded bg-obsidian">
                   {sections.map((section, i) => ISSUES[section.issue].lane === lane.key && (
                     <button
                       key={`${section.issue}-${section.ref_start}`}
@@ -127,26 +127,26 @@ const ComparisonTimeline = ({ result }) => {
                 </div>
               </div>
             ))}
-            <div className="flex justify-between pl-[3.75rem] text-[11px] text-muted">
+            <div className="flex justify-between pl-[3.75rem] text-caption text-fog">
               <span>0:00</span><span>{clock(duration / 2)}</span><span>{clock(duration)}</span>
             </div>
           </div>
 
           {sections.length === 0 ? (
-            <p className="mt-3 text-xs text-muted">No section crossed a problem threshold: pitch within ±25¢ and tempo within 10% of the original everywhere.</p>
+            <p className="mt-3 text-caption text-fog">No section crossed a problem threshold: pitch within ±25¢ and tempo within 10% of the original everywhere.</p>
           ) : selected != null && sections[selected] ? (
-            <div className="mt-3 p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
+            <div className="mt-3 p-3 bg-graphite shadow-subtle text-caption">
               <div className="font-semibold text-white mb-1">
                 {ISSUES[sections[selected].issue].symbol} {ISSUES[sections[selected].issue].label}
-                <span className="font-normal text-muted"> · {clock(sections[selected].ref_start)}–{clock(sections[selected].ref_end)} in the original, {clock(sections[selected].user_start)}–{clock(sections[selected].user_end)} in your take</span>
+                <span className="font-normal text-fog"> · {clock(sections[selected].ref_start)}–{clock(sections[selected].ref_end)} in the original, {clock(sections[selected].user_start)}–{clock(sections[selected].user_end)} in your take</span>
               </div>
-              <p className="text-muted">{sections[selected].detail}</p>
+              <p className="text-fog">{sections[selected].detail}</p>
             </div>
           ) : (
-            <p className="mt-3 text-xs text-muted">{sections.length} problem section{sections.length > 1 ? 's' : ''} found. Click a block for details.</p>
+            <p className="mt-3 text-caption text-fog">{sections.length} problem section{sections.length > 1 ? 's' : ''} found. Click a block for details.</p>
           )}
 
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-caption text-fog">
             {Object.entries(ISSUES).map(([key, issue]) => (
               <span key={key} className="flex items-center gap-1.5">
                 <span className="inline-flex h-4 w-4 items-center justify-center rounded text-[10px] font-bold text-white"
@@ -161,8 +161,8 @@ const ComparisonTimeline = ({ result }) => {
       {/* Tempo drift */}
       {result.tempo_curve.length > 1 && (
         <div>
-          <h4 className="text-xs font-mono uppercase text-muted mb-1">Your tempo compared with the original</h4>
-          <p className="text-[11px] text-muted mb-2">Above 1.0× you were faster than the original at that point, below 1.0× slower (each point averages a 4-second window, so sudden changes appear gradual).</p>
+          <h4 className="text-body-sm font-semibold text-white mb-1">Your tempo compared with the original</h4>
+          <p className="text-caption text-fog mb-2">Above 1.0× you were faster than the original at that point, below 1.0× slower (each point averages a 4-second window, so sudden changes appear gradual).</p>
           <TempoDriftChart curve={result.tempo_curve} duration={duration} />
         </div>
       )}

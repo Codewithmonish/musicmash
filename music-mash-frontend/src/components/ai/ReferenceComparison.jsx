@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { FiGitMerge } from 'react-icons/fi'
-import Card from '../ui/Card'
+import SectionHeader from '../ui/SectionHeader'
+import EqualizerBars from '../ui/EqualizerBars'
 import Button from '../ui/Button'
 import ComparisonTimeline from './ComparisonTimeline'
 import api from '../../services/api'
@@ -68,43 +68,35 @@ const ReferenceComparison = ({ analysisId }) => {
   }
 
   return (
-    <Card hover={false} className="border-white/10 p-6 mb-8">
-      <h3 className="font-display text-xl font-bold text-white mb-1 flex items-center gap-2">
-        <FiGitMerge className="text-accent" /> How close am I to the original?
-      </h3>
-      <p className="text-xs text-muted mb-4 max-w-3xl">
-        Pick a reference recording. Your take is lined up with it moment by moment (even if you were
-        faster or slower), then pitch and tempo are compared at matching moments.
-      </p>
-
-      {references && references.length === 0 ? (
-        <p className="text-xs text-muted">No reference tracks are available yet. Hosts and admins can add them.</p>
-      ) : (
-        <div className="flex flex-wrap items-center gap-3 mb-4">
-          <select
-            value={referenceId}
-            onChange={(e) => setReferenceId(e.target.value)}
-            disabled={!references || status === 'running'}
-            aria-label="Reference track"
-            className="min-w-[16rem] rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white"
-          >
-            {(references || []).map((r) => (
-              <option key={r.id} value={r.id} className="bg-[#0d0d13]">
-                {r.title}{r.artist ? ` — ${r.artist}` : ''}
-              </option>
-            ))}
-          </select>
-          <Button variant="accent" className="text-xs uppercase font-bold" onClick={startComparison}
-            disabled={!referenceId || status === 'running'}>
-            {status === 'running' ? 'Comparing…' : 'Compare'}
-          </Button>
-        </div>
-      )}
-
-      {status === 'running' && <p className="text-xs text-muted">Aligning your take with the original. This can take a minute for long recordings.</p>}
-      {message && <p className="text-xs text-warning">{message}</p>}
-      {status === 'done' && result && <ComparisonTimeline result={result} />}
-    </Card>
+    <section>
+      <SectionHeader title="How close am I to the original?"
+        description="Pick a reference recording. Your take is lined up with it moment by moment (even if you were faster or slower), then pitch and tempo are compared at matching moments." />
+      <div className="bg-graphite p-4 shadow-subtle sm:p-6">
+        {references && references.length === 0 ? (
+          <p className="text-body-sm text-fog">No reference tracks are available yet. Hosts and admins can add them.</p>
+        ) : (
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <select
+              value={referenceId}
+              onChange={(e) => setReferenceId(e.target.value)}
+              disabled={!references || status === 'running'}
+              aria-label="Reference track"
+              className="w-full rounded bg-obsidian px-4 py-3 text-body-sm text-white focus:bg-mid-gray focus:outline-none sm:w-auto sm:min-w-[18rem]"
+            >
+              {(references || []).map((r) => (
+                <option key={r.id} value={r.id}>{r.title}{r.artist ? ` — ${r.artist}` : ''}</option>
+              ))}
+            </select>
+            <Button onClick={startComparison} disabled={!referenceId || status === 'running'}>
+              {status === 'running' ? <><EqualizerBars count={3} className="h-3" barClassName="bg-obsidian" /> Comparing</> : 'Compare'}
+            </Button>
+          </div>
+        )}
+        {status === 'running' && <p className="text-body-sm text-fog">Aligning your take with the original. This can take a minute for long recordings.</p>}
+        {message && <p role="alert" className="text-body-sm text-white"><span className="text-status-critical">●</span> {message}</p>}
+        {status === 'done' && result && <ComparisonTimeline result={result} />}
+      </div>
+    </section>
   )
 }
 
