@@ -23,6 +23,7 @@ public class Leaderboard {
     @Column(name = "total_score")
     private BigDecimal totalScore = BigDecimal.ZERO;
 
+    @Column(name = "rank_position") // "rank" is a reserved word in MySQL 8
     private Integer rank;
 
     @Column(name = "improvement_rate")

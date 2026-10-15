@@ -1,5 +1,7 @@
 package com.musicmash.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -16,6 +18,7 @@ public class Participation {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "competition_id", nullable = false)
+    @JsonIgnore // callers ask per competition, and the lazy proxy cannot be serialised
     private Competition competition;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -24,11 +27,13 @@ public class Participation {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "performance_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "user"})
     private Performance performance;
 
     @Column(name = "joined_at", updatable = false)
     private LocalDateTime joinedAt = LocalDateTime.now();
 
+    @Column(name = "rank_position") // "rank" is a reserved word in MySQL 8
     private Integer rank;
 
     private BigDecimal score;
