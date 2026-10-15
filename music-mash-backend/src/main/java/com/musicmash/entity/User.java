@@ -1,6 +1,7 @@
 package com.musicmash.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -10,6 +11,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
+// Lazy-loaded Users are Hibernate proxies; their internal fields can't be serialised
+// (GET /api/competitions returned 500 as soon as a competition existed).
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "users", indexes = {
     @Index(name = "idx_email", columnList = "email"),

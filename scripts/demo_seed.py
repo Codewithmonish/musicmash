@@ -13,6 +13,11 @@ Steps, exactly as the frontend would do them:
   2. demo host (role HOST): upload the reference and register it as a reference track
      (re-used on later runs), wait until its features are computed
   3. demo user: compare the analysed take with the reference, wait for the result
+  4. community content through the same APIs: the host creates two competitions (once), the demo
+     user registers for one and submits the take for judging; while nothing is approved yet the
+     host evaluates it (feedback marked as a seeded demo evaluation), so the home page's
+     "Trending" has a real approved performance. Later runs leave the new take awaiting judging,
+     so the Judge page has work too.
 It prints the AI Analysis page URL; the ids go to logs/demo_seed.json for e2e_screenshot.py.
 
 Usage (services running, from the repo root):
@@ -142,14 +147,50 @@ def ensure_reference(client: httpx.Client) -> int:
         if reference["title"] == REFERENCE_TITLE and reference["status"] == "COMPLETED":
             print(f"Re-using reference track {reference['id']}")
             return reference["id"]
-    host = httpx.Client(base_url=API, timeout=30)
-    host.headers["Authorization"] = f"Bearer {login(host, HOST_USERNAME, HOST_EMAIL, 'HOST')}"
+    host = host_client()
     reference = check(host.post("/ai/references", json={
         "title": REFERENCE_TITLE, "artist": "MusicMash demo", "instrument": "VIOLIN",
         "audioUrl": upload(host, make_reference(), "demo-reference.wav")}), "Create reference")
     print(f"Created reference track {reference['id']}, computing its features...")
     wait_until_done(host, f"/ai/references/{reference['id']}", "Reference")
     return reference["id"]
+
+
+DEMO_COMPETITIONS = [
+    {"title": "Autumn Open: Classical", "description": "Any classical piece, solo instrument or voice. Judges look at intonation, timing and expression.",
+     "category": "CLASSICAL", "instrument": "ALL", "prize": "Written feedback from three judges", "maxParticipants": 50},
+    {"title": "Street Sessions: Hip-hop", "description": "Bars, beats or both. Up to three minutes, recorded live.",
+     "category": "HIP_HOP", "instrument": "ALL", "prize": "Featured on the MusicMash home page", "maxParticipants": 100},
+]
+
+
+def host_client() -> httpx.Client:
+    host = httpx.Client(base_url=API, timeout=30)
+    host.headers["Authorization"] = f"Bearer {login(host, HOST_USERNAME, HOST_EMAIL, 'HOST')}"
+    return host
+
+
+def seed_community(client: httpx.Client, performance_id: int) -> None:
+    """Competitions, a registration and judging, all through the real API."""
+    host = host_client()
+    existing = {c["title"]: c for c in check(client.get("/competitions"), "List competitions")}
+    for competition in DEMO_COMPETITIONS:
+        if competition["title"] not in existing:
+            existing[competition["title"]] = check(host.post("/competitions", json=competition), "Create competition")
+            print(f"Created competition '{competition['title']}'")
+    classical = existing[DEMO_COMPETITIONS[0]["title"]]
+    client.post(f"/competitions/{classical['id']}/register")  # 4xx if already registered: fine
+
+    check(client.post(f"/performances/{performance_id}/submit"), "Submit for judging")
+    approved = check(client.get("/public/performances/latest"), "Latest approved")
+    if not approved:
+        check(host.post("/judge/evaluations", params={"performanceId": performance_id}, json={
+            "pitchScore": 70, "rhythmScore": 65, "timingScore": 65, "techniqueScore": 70,
+            "creativityScore": 60, "expressionScore": 65,
+            "feedback": "Seeded demo evaluation (scripts/demo_seed.py): a human judge's scores go here."}), "Evaluate")
+        print(f"Performance {performance_id} evaluated by the demo host and approved")
+    else:
+        print(f"Performance {performance_id} submitted and awaiting judging")
 
 
 def main() -> None:
@@ -183,6 +224,7 @@ def main() -> None:
         reference_id = ensure_reference(client)
         comparison_id = check(client.post("/ai/compare", json={
             "referenceId": reference_id, "analysisId": analysis_id}), "Submit comparison")["id"]
+        seed_community(client, performance["id"])
         print(f"Submitted comparison {comparison_id}, waiting...")
         wait_until_done(client, f"/ai/compare/{comparison_id}/status", f"Comparison {comparison_id}")
         comparison = check(client.get(f"/ai/compare/{comparison_id}/result"), "Comparison result")
