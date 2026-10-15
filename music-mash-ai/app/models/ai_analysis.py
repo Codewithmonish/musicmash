@@ -16,7 +16,7 @@ class AIAnalysis(Base):
     __tablename__ = "ai_analyses"
 
     id = Column(Integer, primary_key=True, index=True)
-    performance_id = Column(Integer, nullable=False, index=True)
+    performance_id = Column(Integer, nullable=True, index=True)  # null for practice attempts
     user_id = Column(Integer, nullable=False, index=True)
     
     # Plain file names inside the shared upload directory (app/core/uploads.py)

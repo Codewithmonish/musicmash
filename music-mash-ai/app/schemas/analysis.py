@@ -20,7 +20,7 @@ class AnalysisRequest(BaseModel):
     audio_file / video_file are plain file names inside the shared upload directory
     (app/core/uploads.py), never URLs or paths.
     """
-    performance_id: int = Field(..., description="Performance ID from Spring Boot")
+    performance_id: Optional[int] = Field(None, description="Performance ID from Spring Boot; null for a practice attempt")
     user_id: int = Field(..., description="User ID from Spring Boot")
     audio_file: Optional[str] = Field(None, description="Upload file name, e.g. 3f2a...e1.wav")
     video_file: Optional[str] = Field(None, description="Upload file name, e.g. 9b1c...07.mp4")
@@ -43,7 +43,7 @@ class AnalysisRequest(BaseModel):
 
 class AnalysisResponse(BaseModel):
     id: int
-    performance_id: int
+    performance_id: Optional[int] = None
     user_id: int
     status: AnalysisStatus
     message: Optional[str] = None
@@ -55,7 +55,7 @@ class AnalysisResponse(BaseModel):
 
 class AnalysisStatusResponse(BaseModel):
     id: int
-    performance_id: int
+    performance_id: Optional[int] = None
     status: AnalysisStatus
     processing_started_at: Optional[datetime] = None
     processing_completed_at: Optional[datetime] = None

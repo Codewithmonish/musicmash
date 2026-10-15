@@ -18,6 +18,13 @@ public interface PerformanceRepository extends JpaRepository<Performance, Long> 
 
     List<Performance> findByUserIdAndStatusOrderBySubmittedAtDesc(Long userId, PerformanceStatus status);
 
+    /** Newest performances with the given status; q (lower-case) matches title or username. */
+    @Query("SELECT p FROM Performance p JOIN FETCH p.user u WHERE p.status = :status " +
+           "AND (:q IS NULL OR LOWER(p.title) LIKE CONCAT('%', :q, '%') OR LOWER(u.username) LIKE CONCAT('%', :q, '%')) " +
+           "ORDER BY p.submittedAt DESC")
+    List<Performance> findLatestPublic(@Param("status") PerformanceStatus status, @Param("q") String q,
+                                       org.springframework.data.domain.Pageable pageable);
+
     @Query("SELECT p FROM Performance p WHERE p.status = :status " +
            "AND (:instrument IS NULL OR p.instrument = :instrument) " +
            "AND (:category IS NULL OR p.category = :category) " +

@@ -171,3 +171,13 @@ def test_pitch_contour_errors(client, setup_database, upload_dir):
     (upload_dir / "broken.wav").write_bytes(b"not audio")
     failed_id = submit(client, audio_file="broken.wav").json()["id"]
     assert client.get(f"/api/ai/result/{failed_id}/pitch-contour").status_code == 400
+
+
+def test_practice_attempt_can_be_analysed_without_a_performance(client, setup_database, write_upload):
+    """Practice Arena attempts are not performances: performance_id may be omitted."""
+    response = client.post("/api/ai/analyze", json={"user_id": 1, "audio_file": write_upload(tone(), "attempt.wav")})
+    assert response.status_code == 200, response.text
+    assert response.json()["performance_id"] is None
+    result = client.get(f"/api/ai/result/{response.json()['id']}").json()
+    assert result["analysis"]["performance_id"] is None
+    assert result["skill_prediction"]["intonation_score"] > 90
