@@ -1,39 +1,44 @@
-import { motion } from 'framer-motion'
-import { clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { forwardRef } from 'react'
+import { Link } from 'react-router-dom'
+import { cn } from '../../utils/cn'
 
-const Button = ({ children, variant = 'primary', size = 'md', className, icon: Icon, ...props }) => {
-  const baseStyles = 'inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-300 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer'
-  
-  const variants = {
-    primary: 'btn-primary',
-    secondary: 'btn-secondary',
-    accent: 'btn-accent',
-    outline: 'btn-outline',
-    ghost: 'text-muted hover:text-white hover:bg-white/10',
-    danger: 'bg-gradient-to-r from-error to-red-600 text-white hover:shadow-lg hover:shadow-error/40',
-  }
-  
-  const sizes = {
-    sm: 'px-3.5 py-1.5 text-xs',
-    md: 'px-5 py-2.5 text-sm',
-    lg: 'px-7 py-3.5 text-base',
-    xl: 'px-9 py-4 text-lg font-bold',
-  }
-  
-  const mergedClassName = twMerge(clsx(baseStyles, variants[variant], sizes[size], className))
-  
-  return (
-    <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className={mergedClassName}
-      {...props}
-    >
-      {Icon && <Icon className="text-base" />}
-      {children}
-    </motion.button>
-  )
+// Flat fills, 4px corners, no shadows (docs/MUSICMASH_DESIGN_SYSTEM.md → Buttons).
+const VARIANTS = {
+  primary: 'bg-white text-obsidian font-bold hover:bg-silver',            // the action colour is white
+  ghost: 'bg-transparent text-fog font-normal hover:text-white',          // tertiary / navigation
+  subtle: 'bg-graphite text-white font-semibold hover:bg-mid-gray',       // secondary on dark
+  inverse: 'bg-obsidian text-white font-bold hover:bg-graphite',          // primary on the light band
+  danger: 'bg-transparent text-white font-semibold shadow-subtle hover:bg-graphite',
 }
+// Names used by pages written before the redesign, mapped onto the new set.
+const LEGACY = { accent: 'primary', secondary: 'subtle', outline: 'subtle' }
+
+const SIZES = {
+  sm: 'h-8 px-3 text-caption',
+  md: 'h-10 px-4 text-body-sm',
+  lg: 'h-12 px-6 text-body-sm',
+}
+
+const Button = forwardRef(({ children, variant = 'primary', size = 'md', to, href, icon: Icon,
+  iconRight: IconRight, className, type = 'button', ...props }, ref) => {
+  const classes = cn(
+    'inline-flex items-center justify-center gap-2 rounded whitespace-nowrap transition-colors duration-150',
+    'disabled:opacity-40 disabled:pointer-events-none select-none',
+    VARIANTS[LEGACY[variant] || variant] || VARIANTS.primary,
+    SIZES[size === 'xl' ? 'lg' : size] || SIZES.md,
+    className,
+  )
+  const content = (
+    <>
+      {Icon && <Icon aria-hidden="true" className="shrink-0" />}
+      {children}
+      {IconRight && <IconRight aria-hidden="true" className="shrink-0" />}
+    </>
+  )
+  if (to) return <Link ref={ref} to={to} className={classes} {...props}>{content}</Link>
+  if (href) return <a ref={ref} href={href} className={classes} {...props}>{content}</a>
+  return <button ref={ref} type={type} className={classes} {...props}>{content}</button>
+})
+Button.displayName = 'Button'
 
 export default Button

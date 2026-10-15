@@ -1,32 +1,23 @@
-import { motion } from 'framer-motion'
+import { cn } from '../../utils/cn'
 
-const EqualizerBars = ({ count = 5, className = 'h-6 gap-1' }) => {
-  const heights = [0.4, 0.9, 0.6, 1.0, 0.3, 0.8, 0.5, 0.9, 0.7]
-
-  return (
-    <div className={`flex items-end ${className}`}>
-      {Array.from({ length: count }).map((_, i) => {
-        const initialH = (heights[i % heights.length] * 100) + '%'
-        return (
-          <motion.span
-            key={i}
-            className="w-1 bg-gradient-to-t from-primary via-secondary to-accent rounded-full"
-            animate={{
-              height: ['20%', '100%', '35%', '85%', '20%'],
-            }}
-            transition={{
-              duration: 1.2 + (i % 3) * 0.2,
-              repeat: Infinity,
-              repeatType: 'mirror',
-              ease: 'easeInOut',
-              delay: i * 0.1,
-            }}
-            style={{ height: initialH }}
-          />
-        )
-      })}
-    </div>
-  )
-}
+/**
+ * Animated equalizer bars for "playing" / "processing" states. White by default; motion stops
+ * (bars rest at mixed heights) for prefers-reduced-motion via the global rule.
+ */
+const EqualizerBars = ({ count = 4, active = true, className, barClassName, label }) => (
+  <span role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : 'true'}
+    className={cn('inline-flex h-4 items-end gap-[3px]', className)}>
+    {Array.from({ length: count }, (_, i) => (
+      <span
+        key={i}
+        className={cn('h-full w-[3px] origin-bottom bg-white', barClassName)}
+        style={{
+          transform: `scaleY(${[0.55, 1, 0.7, 0.85, 0.4, 0.95][i % 6]})`,
+          animation: active ? `eq-bounce ${0.9 + (i % 3) * 0.2}s ease-in-out ${i * 0.12}s infinite` : 'none',
+        }}
+      />
+    ))}
+  </span>
+)
 
 export default EqualizerBars
