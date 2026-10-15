@@ -154,8 +154,9 @@ The backend is currently implemented as a monolithic Spring Boot application wit
 - **Judge Dashboard** - Performance evaluation interface
 
 ### UI/UX Features
-- Responsive design (mobile, tablet, desktop)
-- Glass morphism effects
+- Dark "concert darkroom" design: flat, quiet interface; photography and cover art carry the colour
+  (tokens and components in [docs/MUSICMASH_DESIGN_SYSTEM.md](docs/MUSICMASH_DESIGN_SYSTEM.md))
+- Responsive design (mobile, tablet, desktop), visible keyboard focus, reduced-motion support
 - Smooth animations with Framer Motion
 - Toast notifications
 - Loading states and skeletons
@@ -165,6 +166,18 @@ The backend is currently implemented as a monolithic Spring Boot application wit
 - Active navigation highlighting
 - Dropdown menus
 - Mobile hamburger menu
+
+## Screenshots
+
+| Landing | Practice Arena |
+|---|---|
+| ![Landing page](docs/screenshots/landing-desktop.webp) | ![Practice Arena](docs/screenshots/practice-desktop.webp) |
+| **AI Analysis** | **Studio (phone)** |
+| ![AI Analysis](docs/screenshots/ai-analysis-desktop.webp) | ![Recording studio on a phone](docs/screenshots/upload-mobile.webp) |
+
+Every page at 1440 px and 390 px: run `scripts/ui_screenshots.py` (see [RUN_LOCAL.md](RUN_LOCAL.md));
+output goes to `screenshots/ui/`. Photos are from Unsplash, credited in
+[music-mash-frontend/public/images/CREDITS.md](music-mash-frontend/public/images/CREDITS.md).
 
 ## Getting Started
 

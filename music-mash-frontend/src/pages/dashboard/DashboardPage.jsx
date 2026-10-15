@@ -116,7 +116,7 @@ const DashboardPage = () => {
         <section>
           <SectionHeader title="Latest scores" description="Measured from your recorded practice attempts." />
           {!data ? <Skeleton className="h-40" /> : data.sessions.length ? (
-            <div className="overflow-x-auto scroll-quiet">
+            <div className="relative overflow-x-auto scroll-quiet">
               <table className="w-full min-w-[560px] text-left text-body-sm">
                 <thead className="text-caption text-fog">
                   <tr className="border-b border-graphite">

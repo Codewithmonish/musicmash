@@ -97,6 +97,18 @@ It logs in through the login form and opens the demo analysis. Output goes to
 The script exits with code 1 if the chart or the comparison timeline doesn't render, the
 sharp-note tooltip isn't found, or anything was logged in `console.txt`.
 
+### Every page, desktop and phone
+
+```powershell
+music-mash-ai\.venv\Scripts\python scripts\ui_screenshots.py                  # all pages
+music-mash-ai\.venv\Scripts\python scripts\ui_screenshots.py profile judge     # just these
+```
+
+Signs in as the demo accounts (the judge page uses the demo host), opens each page at 1440×900 and
+390×844 with reduced motion, scrolls through it, and saves `screenshots\ui\<page>-<desktop|mobile>.png`
+plus `report.json`. Each line of output says `OK` or lists console errors, failed `/api` calls and
+horizontal overflow. Run `scripts\demo_seed.py` first so pages have data.
+
 ## After a schema change
 
 The AI service's SQLite tables are created once and never altered. After pulling a

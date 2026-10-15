@@ -43,7 +43,7 @@ const LeaderboardPage = () => {
                 </div>
               ))}
             </div>
-            <div className="overflow-x-auto scroll-quiet">
+            <div className="relative overflow-x-auto scroll-quiet">
               <table className="w-full min-w-[520px] text-left text-body-sm">
                 <caption className="sr-only">Leaderboard</caption>
                 <thead className="text-caption text-fog">

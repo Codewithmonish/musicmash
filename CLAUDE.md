@@ -79,6 +79,7 @@ Update this list at the end of each phase (one line per item).
 - [x] Phase 2 — pitch contour visualizer
 - [x] Phase 2.5 — Spring↔AI contract fixes, intonation rename, local run scripts, verified end-to-end with Playwright
 - [x] Phase 3 — reference-track comparison (DTW)
+- [x] UI redesign — dark design system (docs/MUSICMASH_DESIGN_SYSTEM.md), Unsplash imagery, every page rebuilt, real Practice Arena
 - [ ] Phase 4 — RAG AI coach
 - [ ] Phase 5 — instrument auto-detection model
 - [ ] Phase 6 — skill-level model

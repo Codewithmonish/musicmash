@@ -130,7 +130,7 @@ const StyleguidePage = () => {
         <Block title="Loading, empty, progress">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-6">{[1, 2, 3].map((i) => <TrackCardSkeleton key={i} />)}</div>
           <Skeleton className="mt-6 h-10 max-w-md" />
-          <div className="mt-8 flex items-center gap-10">
+          <div className="mt-8 flex flex-wrap items-center gap-10">
             <ProgressRing progress={72} label="72" sublabel="Intonation" />
             <EqualizerBars count={5} label="Processing" />
             <Avatar name="MusicMash" />
