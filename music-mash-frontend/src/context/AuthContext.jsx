@@ -5,12 +5,12 @@ const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(false)
   const [token, setToken] = useState(localStorage.getItem('token'))
+  // With a stored token, wait for /auth/me before deciding (ProtectedRoute shows a loader).
+  const [loading, setLoading] = useState(Boolean(localStorage.getItem('token')))
 
   useEffect(() => {
-    // Skip auth check on mount to prevent blocking UI
-    setLoading(false)
+    checkAuth()
   }, [])
 
   const checkAuth = async () => {
@@ -33,7 +33,8 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password })
-      const { token, user } = response.data
+      // The API returns the user's fields next to the token: {token, id, username, email, role}.
+      const { token, ...user } = response.data
       localStorage.setItem('token', token)
       setToken(token)
       setUser(user)
