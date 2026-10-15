@@ -1,381 +1,181 @@
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  FiMusic, FiTrendingUp, FiAward, FiUpload, FiZap, FiTarget, 
-  FiActivity, FiRadio, FiShield, FiClock, FiPlusCircle, FiChevronRight, 
-  FiCpu, FiCheckCircle, FiAlertCircle, FiStar, FiPlay 
-} from 'react-icons/fi'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { FiArrowRight, FiPlay } from 'react-icons/fi'
 import { useAuth } from '../../context/AuthContext'
-import api from '../../services/api'
-import Navbar from '../../components/layout/Navbar'
-import AmbientBackground from '../../components/ui/AmbientBackground'
-import EqualizerBars from '../../components/ui/EqualizerBars'
-import RadialProgress from '../../components/ui/RadialProgress'
-import Card from '../../components/ui/Card'
+import PageShell from '../../components/layout/PageShell'
 import Button from '../../components/ui/Button'
+import Stat from '../../components/ui/Stat'
+import Badge from '../../components/ui/Badge'
+import SectionHeader from '../../components/ui/SectionHeader'
+import EmptyState from '../../components/ui/EmptyState'
+import Skeleton, { TrackCardSkeleton } from '../../components/ui/Skeleton'
+import TrackCard, { TileGrid, TileItem } from '../../components/ui/TrackCard'
+import CoverImage from '../../components/ui/CoverImage'
+import { IMAGES } from '../../utils/images'
+import { formatDate, instrumentLabel, titleCase } from '../../utils/music'
+import api from '../../services/api'
+
+const XP_PER_LEVEL = 250   // same rule as UserStats.addXp on the server
+
+const greeting = () => {
+  const hour = new Date().getHours()
+  return hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+}
+
+const score = (value) => (value == null ? <span className="text-fog">—</span> : Math.round(value))
 
 const DashboardPage = () => {
   const { user } = useAuth()
-  const [profile, setProfile] = useState(null)
-  const [performances, setPerformances] = useState([])
-  const [practiceStats, setPracticeStats] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [data, setData] = useState(null)
 
   useEffect(() => {
-    fetchDashboardData()
+    const load = async () => {
+      const [profile, stats, performances, sessions] = await Promise.allSettled([
+        api.get('/profile/me'), api.get('/practice/stats'), api.get('/performances'), api.get('/practice/sessions'),
+      ])
+      const value = (r, fallback) => (r.status === 'fulfilled' ? r.value.data : fallback)
+      const profileData = value(profile, null)
+      const exercises = await api.get('/practice/exercises', { params: { instrument: profileData?.primaryInstrument || undefined } })
+        .then((r) => r.data).catch(() => [])
+      setData({ profile: profileData, stats: value(stats, null), performances: value(performances, []),
+        sessions: value(sessions, []), exercises })
+    }
+    load()
   }, [])
 
-  const fetchDashboardData = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      // Parallel API calls with graceful fallback for modules under construction
-      const [profileRes, performancesRes, practiceStatsRes] = await Promise.allSettled([
-        api.get('/profile/me'),
-        api.get('/performances'),
-        api.get('/practice/stats')
-      ])
-
-      if (profileRes.status === 'fulfilled') {
-        setProfile(profileRes.value.data)
-      }
-      
-      if (performancesRes.status === 'fulfilled') {
-        setPerformances(performancesRes.value.data || [])
-      }
-
-      if (practiceStatsRes.status === 'fulfilled') {
-        setPracticeStats(practiceStatsRes.value.data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch dashboard data:', err)
-      setError('Unable to load some command center metrics. Connecting to server...')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Calculate real metrics from database values
-  const totalPerformances = performances.length
-  const approvedPerformances = performances.filter(p => p.status === 'APPROVED').length
-  const latestPerformance = performances.length > 0 ? performances[0] : null
-  
-  // Real XP and Level calculation (or 0 if new)
-  const currentXP = practiceStats?.totalXp || (approvedPerformances * 100) || 0
-  const currentLevel = practiceStats?.level || Math.floor(currentXP / 250) + 1
-  const xpForNextLevel = currentLevel * 250
-  const xpProgress = Math.min(100, Math.round(((currentXP % 250) / 250) * 100))
-  const streakDays = practiceStats?.streak || 0
+  const name = data?.profile?.displayName || user?.username || ''
+  const stats = data?.stats
+  const lastSession = data?.sessions?.[0]
+  const continueExercise = data && (data.exercises.find((e) => e.id === lastSession?.exerciseId) ?? data.exercises[0])
+  const xpIntoLevel = stats ? stats.totalXp % XP_PER_LEVEL : 0
+  const banner = IMAGES.scenes.dashboard
 
   return (
-    <div className="min-h-screen bg-[#06060A] text-foreground relative overflow-hidden">
-      <AmbientBackground />
-      <Navbar />
-
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
-        {/* Banner Section - Command Center Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="relative glass-card-glow mb-10 overflow-hidden"
-        >
-          {/* Subtle equalizer accent in header background */}
-          <div className="absolute right-6 top-6 opacity-20 hidden md:block">
-            <EqualizerBars count={12} className="h-20 gap-1.5" />
-          </div>
-
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="px-3 py-1 rounded-full bg-accent/15 border border-accent/30 text-accent text-xs font-mono font-semibold uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-accent animate-ping" />
-                  COMMAND CENTER ONLINE
-                </span>
-                <span className="text-xs text-muted font-mono">
-                  {profile?.instrument ? `• ${profile.instrument}` : ''}
-                </span>
-              </div>
-
-              <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-white mb-2">
-                Welcome, <span className="gradient-text">{profile?.displayName || user?.username}</span>
-              </h1>
-              <p className="text-muted text-sm sm:text-base max-w-2xl">
-                {profile?.bio || 'Track your performance evaluations, AI coaching recommendations, and musical progression.'}
-              </p>
-            </div>
-
-            {/* Quick Command Actions */}
-            <div className="flex flex-wrap items-center gap-3">
-              <Link to="/upload">
-                <Button variant="accent" icon={FiUpload} className="text-xs uppercase tracking-wider">
-                  Upload Track
-                </Button>
-              </Link>
-              <Link to="/practice">
-                <Button variant="secondary" icon={FiTarget} className="text-xs uppercase tracking-wider">
-                  Practice Arena
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Real Metrics Command Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          {/* Level & XP Card */}
-          <Card hover variant="gradient" className="flex items-center gap-5">
-            <RadialProgress progress={xpProgress} size={84} strokeWidth={6} label={`LVL ${currentLevel}`} sublabel={`${currentXP} XP`} />
-            <div>
-              <div className="text-xs uppercase tracking-widest text-muted font-mono font-semibold mb-1">Skill Tier</div>
-              <div className="text-lg font-bold font-display text-white">{profile?.experienceLevel || 'BEGINNER'}</div>
-              <div className="text-xs text-accent font-medium mt-1">
-                {250 - (currentXP % 250)} XP to Level {currentLevel + 1}
-              </div>
-            </div>
-          </Card>
-
-          {/* Practice Streak Card */}
-          <Card hover className="flex items-center justify-between">
-            <div>
-              <div className="text-xs uppercase tracking-widest text-muted font-mono font-semibold mb-1">Practice Streak</div>
-              <div className="text-3xl font-display font-black text-white flex items-baseline gap-1">
-                {streakDays} <span className="text-sm font-normal text-muted">Days</span>
-              </div>
-              <div className="text-xs text-muted mt-1 flex items-center gap-1">
-                <FiZap className="text-warning" />
-                {streakDays > 0 ? 'Streak Active!' : 'Practice today to start streak'}
-              </div>
-            </div>
-            <div className="w-14 h-14 rounded-2xl bg-warning/10 border border-warning/20 flex items-center justify-center text-warning text-2xl shadow-glow-purple">
-              🔥
-            </div>
-          </Card>
-
-          {/* Performance Count */}
-          <Card hover className="flex items-center justify-between">
-            <div>
-              <div className="text-xs uppercase tracking-widest text-muted font-mono font-semibold mb-1">Performances</div>
-              <div className="text-3xl font-display font-black text-white">{totalPerformances}</div>
-              <div className="text-xs text-success mt-1 flex items-center gap-1">
-                <FiCheckCircle /> {approvedPerformances} Approved
-              </div>
-            </div>
-            <div className="w-14 h-14 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary-light text-2xl">
-              <FiMusic />
-            </div>
-          </Card>
-
-          {/* Competition / Ranking Status */}
-          <Card hover className="flex items-center justify-between">
-            <div>
-              <div className="text-xs uppercase tracking-widest text-muted font-mono font-semibold mb-1">Global Standing</div>
-              <div className="text-lg font-bold font-display text-white">
-                {practiceStats?.rank ? `#${practiceStats.rank}` : 'Unranked'}
-              </div>
-              <div className="text-xs text-muted mt-1 flex items-center gap-1">
-                <FiTrendingUp className="text-accent" />
-                Submit tracks to rank
-              </div>
-            </div>
-            <div className="w-14 h-14 rounded-2xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent text-2xl">
-              <FiAward />
-            </div>
-          </Card>
+    <PageShell>
+      {/* Banner + greeting */}
+      <section className="relative h-56 overflow-hidden sm:h-72">
+        <img src={banner?.src} alt={banner?.alt ?? ''} width="1600" height="700" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="hero-scrim absolute inset-0" aria-hidden="true" />
+        <div className="page relative flex h-full flex-col justify-end pb-8">
+          <p className="text-body-sm text-fog">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+          <h1 className="mt-1 text-heading font-thin text-white">{greeting()}{name && `, ${name}`}</h1>
         </div>
+      </section>
 
-        {/* Main Dashboard Layout (2 Columns: Recent Activity & AI Coach) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-          {/* Left Column: Recent Performances & Journey (2 Cols) */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Recent Performances Panel */}
-            <Card hover={false} className="border-white/10">
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-primary/20 text-primary-light">
-                    <FiMusic className="text-xl" />
-                  </div>
-                  <div>
-                    <h2 className="font-display text-xl font-bold text-white">Recent Tracks</h2>
-                    <p className="text-xs text-muted">Your recorded musical submissions</p>
-                  </div>
+      <div className="page space-y-16 py-10">
+        {/* Real stats */}
+        <section aria-label="Your practice">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {stats ? (
+              <>
+                <Stat label="Practice streak" value={stats.streak} unit={stats.streak === 1 ? 'day' : 'days'}
+                  hint={stats.lastPracticeDate ? `Last practised ${formatDate(stats.lastPracticeDate)}` : 'No sessions yet'} />
+                <Stat label={`Level ${stats.level}`} value={stats.totalXp} unit="XP"
+                  hint={`${XP_PER_LEVEL - xpIntoLevel} XP to level ${stats.level + 1}`} />
+                <Stat label="Time practised" value={stats.totalPracticeMinutes} unit="min" />
+                <Stat label="Sessions scored" value={stats.exercisesCompleted} />
+              </>
+            ) : Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-[104px]" />)}
+          </div>
+          {stats && (
+            <div className="mt-4 h-1 w-full bg-graphite" role="progressbar" aria-label={`Level ${stats.level} progress`}
+              aria-valuemin={0} aria-valuemax={XP_PER_LEVEL} aria-valuenow={xpIntoLevel}>
+              <div className="h-full bg-white transition-all duration-700" style={{ width: `${(xpIntoLevel / XP_PER_LEVEL) * 100}%` }} />
+            </div>
+          )}
+        </section>
+
+        {/* Continue practising */}
+        <section>
+          <SectionHeader title={lastSession ? 'Continue practising' : 'Start practising'}
+            description={lastSession ? `You last practised ${lastSession.title}.` : 'Pick up an exercise for your instrument.'}
+            action={{ label: 'All exercises', to: '/practice' }} />
+          {!data ? <Skeleton className="h-40" /> : continueExercise ? (
+            <div className="grid gap-6 bg-graphite p-4 shadow-subtle sm:grid-cols-[180px_1fr] sm:items-center">
+              <CoverImage src={continueExercise.coverImage} alt={continueExercise.title} seed={`exercise-${continueExercise.id}`} />
+              <div>
+                <div className="flex flex-wrap gap-2">
+                  <Badge>{titleCase(continueExercise.difficulty)}</Badge>
+                  <Badge tone="muted">{instrumentLabel(continueExercise.instrument === 'ANY' ? 'Any instrument' : continueExercise.instrument)}</Badge>
+                  <Badge tone="muted">{continueExercise.bpm} BPM · {continueExercise.timeSignature}</Badge>
                 </div>
-                <Link to="/upload" className="text-xs font-semibold text-accent hover:underline flex items-center gap-1">
-                  New Upload <FiChevronRight />
-                </Link>
+                <h3 className="mt-3 text-subheading font-semibold text-white">{continueExercise.title}</h3>
+                <p className="mt-1 max-w-xl text-body-sm text-fog">{continueExercise.description}</p>
+                <Button to={`/practice?exercise=${continueExercise.id}`} icon={FiPlay} className="mt-4">
+                  {lastSession ? 'Practise again' : 'Start'}
+                </Button>
               </div>
+            </div>
+          ) : (
+            <EmptyState image={IMAGES.emptyStates.practice?.src} imageAlt="" title="No exercises available"
+              body="The exercise library could not be loaded." compact />
+          )}
+        </section>
 
-              {performances.length > 0 ? (
-                <div className="space-y-4">
-                  {performances.slice(0, 4).map((perf) => (
-                    <div
-                      key={perf.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all duration-300 gap-4"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30 flex items-center justify-center text-accent">
-                          <FiPlay className="text-lg ml-0.5" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-white text-base">{perf.title}</h4>
-                          <div className="text-xs text-muted flex items-center gap-3 mt-1">
-                            <span>🎹 {perf.instrument}</span>
-                            <span>• {perf.category || 'General'}</span>
-                            <span>• {new Date(perf.submittedAt || perf.createdAt || Date.now()).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
-                            perf.status === 'APPROVED'
-                              ? 'bg-success/20 text-success border border-success/30'
-                              : perf.status === 'SUBMITTED' || perf.status === 'PENDING'
-                              ? 'bg-warning/20 text-warning border border-warning/30'
-                              : 'bg-muted/20 text-muted border border-white/10'
-                          }`}
-                        >
-                          {perf.status}
-                        </span>
-
-                        <Link
-                          to={`/ai-analysis/${perf.id}`}
-                          className="btn-outline py-1.5 px-3 text-xs"
-                        >
-                          View Analysis
-                        </Link>
-                      </div>
-                    </div>
+        {/* Latest measured scores */}
+        <section>
+          <SectionHeader title="Latest scores" description="Measured from your recorded practice attempts." />
+          {!data ? <Skeleton className="h-40" /> : data.sessions.length ? (
+            <div className="overflow-x-auto scroll-quiet">
+              <table className="w-full min-w-[560px] text-left text-body-sm">
+                <thead className="text-caption text-fog">
+                  <tr className="border-b border-graphite">
+                    <th className="py-2 pr-4 font-normal">Exercise</th>
+                    <th className="py-2 pr-4 font-normal">Intonation</th>
+                    <th className="py-2 pr-4 font-normal">Rhythm</th>
+                    <th className="py-2 pr-4 font-normal">XP</th>
+                    <th className="py-2 pr-4 font-normal">Date</th>
+                    <th className="py-2 font-normal"><span className="sr-only">Analysis</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.sessions.slice(0, 5).map((s) => (
+                    <tr key={s.id} className="border-b border-graphite">
+                      <td className="py-3 pr-4 font-semibold text-white">{s.title}</td>
+                      <td className="py-3 pr-4">{score(s.intonationScore)}</td>
+                      <td className="py-3 pr-4">{score(s.rhythmScore)}</td>
+                      <td className="py-3 pr-4">{s.xpEarned}</td>
+                      <td className="py-3 pr-4 text-fog">{formatDate(s.completedAt)}</td>
+                      <td className="py-3 text-right">
+                        {s.analysisId && <Link to={`/ai-analysis/${s.analysisId}`} className="link">Details</Link>}
+                      </td>
+                    </tr>
                   ))}
-                </div>
-              ) : (
-                /* Encouragement Empty State - NO FAKE DATA */
-                <div className="text-center py-14 px-4 bg-white/5 rounded-xl border border-dashed border-white/10">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary-light text-2xl shadow-glow-purple">
-                    <FiMusic />
-                  </div>
-                  <h3 className="font-display text-lg font-bold text-white mb-1">No Performances Recorded Yet</h3>
-                  <p className="text-muted text-sm max-w-md mx-auto mb-6">
-                    Upload audio or video recordings of your performance to receive real-time AI feedback and professional judge evaluations.
-                  </p>
-                  <Link to="/upload">
-                    <Button variant="primary" icon={FiPlusCircle} className="text-xs uppercase tracking-wider">
-                      Record Your First Performance
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </Card>
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState image={IMAGES.emptyStates.analysis?.src} imageAlt="" compact title="No scores yet"
+              body="Record an attempt in the Practice Arena and your measured intonation and rhythm appear here."
+              action={{ label: 'Open the Practice Arena', to: '/practice' }} />
+          )}
+        </section>
 
-            {/* Quick Practice & Goal Section */}
-            <Card hover={false} className="border-white/10">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-accent/20 text-accent">
-                    <FiTarget className="text-xl" />
-                  </div>
-                  <div>
-                    <h2 className="font-display text-xl font-bold text-white">Daily Musical Focus</h2>
-                    <p className="text-xs text-muted">Recommended practice for skill progression</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-5 rounded-xl bg-gradient-to-r from-surface to-primary/10 border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-accent bg-accent/15 px-2.5 py-1 rounded-md mb-2 inline-block">
-                    {profile?.instrument ? `${profile.instrument} TECHNIQUE` : 'FUNDAMENTAL PRACTICE'}
-                  </span>
-                  <h4 className="font-display text-lg font-bold text-white">Rhythm & Timing Consistency</h4>
-                  <p className="text-xs text-muted mt-1 max-w-xl">
-                    Focus on maintaining steady tempo with metronome backing. Practice for 15 minutes in the Practice Arena.
-                  </p>
-                </div>
-                <Link to="/practice" className="shrink-0">
-                  <Button variant="accent" className="text-xs uppercase">
-                    Start Arena
-                  </Button>
-                </Link>
-              </div>
-            </Card>
-          </div>
-
-          {/* Right Column: AI Coach & Achievements Sidebar */}
-          <div className="space-y-8">
-            {/* AI Coach Assistant Panel */}
-            <Card hover={false} variant="glow" className="relative overflow-hidden">
-              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-white/10">
-                <div className="p-2 rounded-xl bg-secondary/20 text-secondary">
-                  <FiCpu className="text-xl animate-spin-slow" />
-                </div>
-                <div>
-                  <h3 className="font-display text-lg font-bold text-white flex items-center gap-2">
-                    AI Music Coach <FiStar className="text-accent text-sm" />
-                  </h3>
-                  <p className="text-xs text-muted">Automated Audio & Pitch Insights</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-xs leading-relaxed text-muted">
-                  <p className="text-white font-medium mb-1 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-success" />
-                    Coach System Status: Ready
-                  </p>
-                  {performances.length > 0 ? (
-                    `Your latest performance "${latestPerformance?.title}" is indexed for evaluation. Check back for pitch & tempo analysis.`
-                  ) : (
-                    'Record your first audio track to generate automated pitch detection, rhythm timing score, and personalized practice drills.'
-                  )}
-                </div>
-
-                <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 space-y-2">
-                  <div className="text-xs font-semibold text-primary-light uppercase tracking-wider">AI Recommendation</div>
-                  <div className="text-xs text-white">
-                    {profile?.instrument ? `Master scales in C Major for ${profile.instrument}.` : 'Set your primary instrument in your profile to unlock customized drills.'}
-                  </div>
-                </div>
-
-                <Link to="/upload" className="block text-center text-xs font-semibold text-accent hover:underline pt-2">
-                  Submit Audio for AI Analysis →
-                </Link>
-              </div>
-            </Card>
-
-            {/* Achievements Progress */}
-            <Card hover={false} className="border-white/10">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-display text-lg font-bold text-white flex items-center gap-2">
-                  <FiAward className="text-warning" /> Milestones & Badges
-                </h3>
-                <Link to="/challenges" className="text-xs text-muted hover:text-white">View All</Link>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 opacity-60">
-                  <div className="text-2xl">🎻</div>
-                  <div>
-                    <div className="text-xs font-bold text-white">First Stage</div>
-                    <div className="text-[10px] text-muted">Submit your first performance</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 opacity-60">
-                  <div className="text-2xl">🔥</div>
-                  <div>
-                    <div className="text-xs font-bold text-white">7-Day Streak</div>
-                    <div className="text-[10px] text-muted">Practice 7 consecutive days</div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
-      </main>
-    </div>
+        {/* Recent performances */}
+        <section>
+          <SectionHeader title="Your performances" action={{ label: 'Upload a new one', to: '/upload' }} />
+          {!data ? (
+            <TileGrid>{Array.from({ length: 6 }, (_, i) => <TileItem key={i}><TrackCardSkeleton /></TileItem>)}</TileGrid>
+          ) : data.performances.length ? (
+            <TileGrid>
+              {data.performances.slice(0, 12).map((p) => (
+                <TileItem key={p.id}>
+                  <TrackCard title={p.title} image={p.thumbnailUrl} seed={`performance-${p.id}`}
+                    subtitle={`${instrumentLabel(p.instrument)} · ${titleCase(p.status)}`} meta={formatDate(p.submittedAt)} />
+                </TileItem>
+              ))}
+            </TileGrid>
+          ) : (
+            <EmptyState image={IMAGES.emptyStates.performances?.src} imageAlt=""
+              title="No performances yet" body="Record or upload a take and it appears here."
+              action={{ label: 'Open the studio', to: '/upload' }} />
+          )}
+          {data?.performances?.length > 12 && (
+            <Link to="/profile" className="link mt-6 inline-flex items-center gap-1">All performances <FiArrowRight /></Link>
+          )}
+        </section>
+      </div>
+    </PageShell>
   )
 }
 

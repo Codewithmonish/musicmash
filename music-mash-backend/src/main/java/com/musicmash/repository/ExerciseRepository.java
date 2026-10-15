@@ -9,6 +9,5 @@ import java.util.List;
 
 @Repository
 public interface ExerciseRepository extends JpaRepository<Exercise, Long> {
-    List<Exercise> findAllByOrderByDifficultyAscTitleAsc();
-    List<Exercise> findByInstrumentInOrderByDifficultyAscTitleAsc(Collection<String> instruments);
+    List<Exercise> findByInstrumentIn(Collection<String> instruments);
 }

@@ -52,12 +52,19 @@ public class PracticeService {
         this.aiIntegrationService = aiIntegrationService;
     }
 
-    /** All exercises, or those for one instrument plus the ones any instrument can play. */
+    private static final List<String> DIFFICULTY_ORDER = List.of("BEGINNER", "INTERMEDIATE", "ADVANCED");
+
+    /** Beginner first, then intermediate, then advanced (not alphabetical), then by title. */
+    static final Comparator<Exercise> EASIEST_FIRST = Comparator
+            .comparingInt((Exercise e) -> DIFFICULTY_ORDER.indexOf(e.getDifficulty()))
+            .thenComparing(Exercise::getTitle);
+
+    /** All exercises, or those for one instrument plus the ones any instrument can play; easiest first. */
     public List<Exercise> getExercises(String instrument) {
-        if (instrument == null || instrument.isBlank()) {
-            return exerciseRepository.findAllByOrderByDifficultyAscTitleAsc();
-        }
-        return exerciseRepository.findByInstrumentInOrderByDifficultyAscTitleAsc(List.of(instrument.toUpperCase(), "ANY"));
+        List<Exercise> exercises = (instrument == null || instrument.isBlank())
+                ? exerciseRepository.findAll()
+                : exerciseRepository.findByInstrumentIn(List.of(instrument.toUpperCase(), "ANY"));
+        return exercises.stream().sorted(EASIEST_FIRST).toList();
     }
 
     public UserStats getUserStats(Long userId) {

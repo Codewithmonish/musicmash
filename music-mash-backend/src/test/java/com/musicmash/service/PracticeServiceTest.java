@@ -60,4 +60,11 @@ class PracticeServiceTest {
             assertTrue(Files.exists(cover), e.getTitle() + " cover " + cover);
         }
     }
+
+    @Test
+    void exercisesAreOrderedEasiestFirstNotAlphabetically() {
+        List<Exercise> sorted = ExerciseSeederAccess.library().stream().sorted(PracticeService.EASIEST_FIRST).toList();
+        assertEquals("BEGINNER", sorted.get(0).getDifficulty());
+        assertEquals("ADVANCED", sorted.get(sorted.size() - 1).getDifficulty());
+    }
 }
