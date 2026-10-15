@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     
     # Model Paths
     MODEL_DIR: str = "./models"
+    # Precomputed reference-track features (.npz), rebuilt from the reference audio if lost
+    REFERENCE_FEATURES_DIR: str = "./data/reference_features"
     
     # Spring Boot Integration
     SPRING_BOOT_URL: str = "http://localhost:8081"

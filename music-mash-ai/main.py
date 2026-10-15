@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.database.database import init_db
-from app.api import ai_analysis_router
+from app.api import ai_analysis_router, comparison_router
 from app.utils.logging import log
 import sys
 
@@ -26,6 +26,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(ai_analysis_router)
+app.include_router(comparison_router)
 
 
 @app.on_event("startup")
