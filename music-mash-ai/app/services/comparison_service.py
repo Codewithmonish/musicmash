@@ -36,16 +36,18 @@ def features_dir() -> Path:
     return folder
 
 
-def extract_from_upload(file_name: str, instrument: str | None, job: str) -> alignment.TrackFeatures:
-    """Load an upload (mono, 22 050 Hz, edge silence trimmed) and extract comparison features."""
+def extract_from_upload(file_name: str, instrument: str | None, job: str,
+                        max_seconds: float) -> alignment.TrackFeatures:
+    """Load an upload (mono, 22 050 Hz, edge silence trimmed) and extract comparison features,
+    keeping at most ``max_seconds`` of audio."""
     preprocessor = AudioPreprocessor()
     with timed("load audio", job):
         y, sr = preprocessor.preprocess(str(resolve_upload(file_name)))
     log.info(f"{job}: {len(y) / sr:.1f} s of audio"
-             + (f", cut to the first {alignment.MAX_SECONDS:.0f} s" if len(y) / sr > alignment.MAX_SECONDS else ""))
+             + (f", cut to the first {max_seconds:.0f} s" if len(y) / sr > max_seconds else ""))
     fmin, fmax = pitch_range_for(instrument)
     with timed("extract features", job):
-        return alignment.extract_features(y, sr, fmin, fmax)
+        return alignment.extract_features(y, sr, fmin, fmax, max_seconds=max_seconds)
 
 
 def precompute_reference(reference_id: int, db: Session) -> None:
@@ -55,7 +57,7 @@ def precompute_reference(reference_id: int, db: Session) -> None:
     if reference is None:
         return
     try:
-        features = extract_from_upload(reference.file_path, reference.instrument, job)
+        features = extract_from_upload(reference.file_path, reference.instrument, job, alignment.MAX_SECONDS)
         path = features_dir() / f"reference_{reference_id}.npz"
         features.save(path)
         reference.features_path = str(path)
@@ -83,7 +85,8 @@ def run_comparison(comparison_id: int, db: Session) -> None:
         reference = db.query(ReferenceTrack).filter(ReferenceTrack.id == comparison.reference_id).first()
         with timed("load reference features", job):
             ref_features = alignment.TrackFeatures.load(Path(reference.features_path))
-        user_features = extract_from_upload(comparison.performance_audio_file, reference.instrument, job)
+        user_features = extract_from_upload(comparison.performance_audio_file, reference.instrument, job,
+                                            alignment.MAX_PERFORMANCE_SECONDS)
         with timed("align and compare", job):
             result = alignment.compare(ref_features, user_features)
         comparison.result = json.dumps(result.to_dict())

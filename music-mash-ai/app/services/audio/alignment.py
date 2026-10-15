@@ -30,7 +30,9 @@ ANALYSIS_SR = 22050          # every recording is loaded at this rate (AudioPrep
 FEATURE_HOP = 2048           # chroma / onset frames: 93 ms at 22 050 Hz (~10.8 frames per s).
                              # Keeps a 3-minute DTW cost matrix at ~1 950 x 1 950 (30 MB).
 PITCH_HOP = 1024             # pYIN hop for comparison: 46 ms; half the work of the 23 ms hop
-MAX_SECONDS = 180.0          # longer recordings are cut to their first 3 minutes
+MAX_SECONDS = 180.0          # references are cut to their first 3 minutes
+MAX_PERFORMANCE_SECONDS = 270.0  # a performance may run 1.5x longer, so even a slow take
+                                 # still contains the whole (cut) reference section
 ONSET_WEIGHT = 0.5           # weight of the onset-strength row next to the 12 chroma rows
 DTW_BAND = 0.25              # Sakoe-Chiba band: the path may stray at most 25% off the diagonal
 
@@ -115,7 +117,7 @@ class ComparisonResult:
     played_similarity: Optional[float]   # same, only where the performance is sounding
     mean_path_cost: float                # mean cosine distance along the DTW path
     baseline_cost: float                 # mean cosine distance over ALL frame pairs
-    tempo_ratio: float                   # whole take: reference duration ÷ performance duration
+    tempo_ratio: float                   # whole take: aligned reference span ÷ aligned performance span
     ref_duration_s: float
     user_duration_s: float
     truncated: bool
@@ -132,12 +134,14 @@ class ComparisonResult:
 
 # --- Feature extraction -----------------------------------------------------------------
 
-def extract_features(y: np.ndarray, sr: int, fmin: float, fmax: float) -> TrackFeatures:
+def extract_features(y: np.ndarray, sr: int, fmin: float, fmax: float,
+                     max_seconds: float | None = None) -> TrackFeatures:
     """Compute chroma, onset strength, pitch and onsets for one recording.
 
-    Audio longer than MAX_SECONDS is cut to its first MAX_SECONDS (``truncated`` = True).
+    Audio longer than ``max_seconds`` (default MAX_SECONDS; use MAX_PERFORMANCE_SECONDS for a
+    performance) is cut to its first ``max_seconds`` and marked ``truncated``.
     """
-    max_samples = int(MAX_SECONDS * sr)
+    max_samples = int((MAX_SECONDS if max_seconds is None else max_seconds) * sr)
     truncated = len(y) > max_samples
     y = np.asarray(y[:max_samples], dtype=np.float32)
 
@@ -180,13 +184,18 @@ def frames_to_seconds(frames: np.ndarray) -> np.ndarray:
     return np.asarray(frames, dtype=float) * FEATURE_HOP / ANALYSIS_SR
 
 
-def align(ref: np.ndarray, user: np.ndarray, band: float = DTW_BAND) -> tuple[np.ndarray, np.ndarray, float]:
+def align(ref: np.ndarray, user: np.ndarray, band: float = DTW_BAND,
+          open_end: bool = False) -> tuple[np.ndarray, np.ndarray, float]:
     """DTW between two feature matrices (features × frames).
 
     1. Cost matrix C[i, j] = cosine distance between reference frame i and performance frame j
        (0 = identical, 1 = nothing in common).
     2. librosa.sequence.dtw finds the cheapest monotonic path from (0, 0) to (end, end), with a
        Sakoe-Chiba band so the path cannot wander unrealistically far from the diagonal.
+       With ``open_end`` (used when the reference was cut at MAX_SECONDS) it is a subsequence
+       search instead: the whole reference must match one stretch of the performance, whose
+       start and end are free. The band is not used then, since it would pin the path to the
+       corner-to-corner diagonal.
 
     Returns (path, path_costs, baseline_cost): path is an (n, 2) array of
     [reference_frame, performance_frame] pairs in time order; path_costs is C at each path
@@ -194,7 +203,10 @@ def align(ref: np.ndarray, user: np.ndarray, band: float = DTW_BAND) -> tuple[np
     cost).
     """
     cost = cdist(ref.T, user.T, metric="cosine")
-    _, path = librosa.sequence.dtw(C=cost, global_constraints=True, band_rad=band)
+    if open_end:
+        _, path = librosa.sequence.dtw(C=cost, subseq=True)
+    else:
+        _, path = librosa.sequence.dtw(C=cost, global_constraints=True, band_rad=band)
     path = path[::-1]
     return path, cost[path[:, 0], path[:, 1]], float(cost.mean())
 
@@ -234,6 +246,16 @@ def local_tempo_ratio(ref_s: np.ndarray, user_s: np.ndarray, start: float, end: 
         return None
     slope, _ = np.polyfit(ref_s[inside], user_s[inside], 1)
     return float(1 / slope) if slope > 0 else None
+
+
+def overall_tempo_ratio(ref_s: np.ndarray, user_s: np.ndarray) -> float:
+    """Aligned reference span ÷ aligned performance span (> 1 = the performance was faster).
+
+    Measured on the path, not the file durations, so leading silence or a performance that
+    runs past the end of a cut reference does not distort it.
+    """
+    user_span = float(user_s[-1] - user_s[0])
+    return float(ref_s[-1] - ref_s[0]) / user_span if user_span > 0 else 1.0
 
 
 def tempo_curve(ref_s: np.ndarray, user_s: np.ndarray,
@@ -345,7 +367,7 @@ def compare(ref: TrackFeatures, user: TrackFeatures, max_path_points: int = 400)
     tempo and pitch would be guesswork: problem_sections is then empty and
     unreliable_reason says why. Similarity, segments and the tempo curve are still returned.
     """
-    path, path_costs, baseline = align(feature_matrix(ref), feature_matrix(user))
+    path, path_costs, baseline = align(feature_matrix(ref), feature_matrix(user), open_end=ref.truncated)
     path_cost = float(path_costs.mean())
     ref_s, user_s = path_seconds(path)
     segments = compare_segments(ref, user, ref_s, user_s)
@@ -360,7 +382,7 @@ def compare(ref: TrackFeatures, user: TrackFeatures, max_path_points: int = 400)
         played_similarity=played_similarity,
         mean_path_cost=round(path_cost, 4),
         baseline_cost=round(baseline, 4),
-        tempo_ratio=round(ref.duration_s / user.duration_s, 3) if user.duration_s else 1.0,
+        tempo_ratio=round(overall_tempo_ratio(ref_s, user_s), 3),
         ref_duration_s=round(ref.duration_s, 2),
         user_duration_s=round(user.duration_s, 2),
         truncated=ref.truncated or user.truncated,

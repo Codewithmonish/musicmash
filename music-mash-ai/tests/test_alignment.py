@@ -111,6 +111,20 @@ def test_features_round_trip_through_a_file(reference, tmp_path):
     assert loaded.duration_s == reference.duration_s and loaded.truncated is False
 
 
+def test_cut_reference_is_matched_inside_a_longer_faster_performance(reference, monkeypatch):
+    """Reference cut at MAX_SECONDS; the 1.2x-faster take holds more of the piece in the same
+    time. Open-end alignment must still find tempo 1.2 (forcing both ends to meet gave 1.0)."""
+    monkeypatch.setattr(A, "MAX_SECONDS", 4.0)
+    cut_reference = features(melody(TUNE))
+    assert cut_reference.truncated and cut_reference.duration_s == pytest.approx(4.0, abs=0.01)
+    result = A.compare(cut_reference, A.extract_features(melody(TUNE, note_s=0.5 / 1.2), SR, FMIN, FMAX,
+                                                        max_seconds=A.MAX_PERFORMANCE_SECONDS))
+    assert result.truncated
+    assert result.tempo_ratio == pytest.approx(1.2, abs=0.05)
+    assert result.similarity > 85
+    assert result.path[-1][1] < 4.0  # the reference's 4 s end inside the take, not at its end
+
+
 def test_long_audio_is_truncated_to_max_seconds(monkeypatch):
     monkeypatch.setattr(A, "MAX_SECONDS", 2.0)
     result = features(melody(TUNE[:6]))  # 3 s of audio
