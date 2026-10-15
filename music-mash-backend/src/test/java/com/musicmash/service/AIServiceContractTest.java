@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.musicmash.dto.AIAnalysisRequestDTO;
 import com.musicmash.dto.AIAnalysisResponseDTO;
 import com.musicmash.dto.AIServiceAnalyzeRequest;
+import com.musicmash.dto.AIServiceCompareRequest;
+import com.musicmash.dto.CompareRequestDTO;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -71,5 +73,26 @@ class AIServiceContractTest {
     void aRequestWithoutMediaIsRejected() {
         AIAnalysisRequestDTO empty = new AIAnalysisRequestDTO(1L, 1L, null, null, null, null);
         assertThrows(IllegalArgumentException.class, () -> AIIntegrationService.toAIServiceRequest(empty));
+    }
+
+    @Test
+    void compareRequestIsSerialisedExactlyAsTheContract() throws Exception {
+        CompareRequestDTO fromFrontend = new CompareRequestDTO(
+                3L, "/uploads/9b1c2d3e-4f5a-4b6c-8d7e-9f0a1b2c3d4e.wav", null);
+
+        AIServiceCompareRequest body = AIIntegrationService.toAIServiceCompareRequest(fromFrontend, 7L);
+        JsonNode sent = plainMapper.readTree(aiMapper.writeValueAsString(body));
+
+        assertEquals(fixture("ai-compare-request.json"), sent);
+    }
+
+    @Test
+    void compareNeedsExactlyOneAudioSource() {
+        assertThrows(IllegalArgumentException.class, () -> AIIntegrationService.toAIServiceCompareRequest(
+                new CompareRequestDTO(3L, null, null), 7L));
+        assertThrows(IllegalArgumentException.class, () -> AIIntegrationService.toAIServiceCompareRequest(
+                new CompareRequestDTO(3L, "/uploads/a.wav", 5L), 7L));
+        assertEquals(5L, AIIntegrationService.toAIServiceCompareRequest(
+                new CompareRequestDTO(3L, null, 5L), 7L).analysisId());
     }
 }

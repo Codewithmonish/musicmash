@@ -5,6 +5,10 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.musicmash.dto.AIAnalysisRequestDTO;
 import com.musicmash.dto.AIAnalysisResponseDTO;
 import com.musicmash.dto.AIServiceAnalyzeRequest;
+import com.musicmash.dto.AIServiceCompareRequest;
+import com.musicmash.dto.AIServiceReferenceRequest;
+import com.musicmash.dto.CompareRequestDTO;
+import com.musicmash.dto.ReferenceUploadRequestDTO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
@@ -124,13 +128,69 @@ public class AIIntegrationService {
         return getRaw("/api/ai/result/" + analysisId + "/pitch-contour");
     }
 
-    /**
-     * Pass-through GET: the AI service's JSON body AND status code reach the frontend
-     * unchanged, so e.g. 400 {"detail": "Analysis not completed yet"} is not turned into 500.
-     */
+    // --- Reference tracks and comparisons (Phase 3) ------------------------------------
+
+    public ResponseEntity<String> createReference(ReferenceUploadRequestDTO request, Long userId) {
+        AIServiceReferenceRequest body = new AIServiceReferenceRequest(
+                request.getTitle(), request.getArtist(), request.getInstrument(),
+                requireUploadFileName(request.getAudioUrl(), "audioUrl"), userId);
+        return exchangeRaw(HttpMethod.POST, "/api/ai/references", body);
+    }
+
+    public ResponseEntity<String> listReferences() {
+        return getRaw("/api/ai/references");
+    }
+
+    public ResponseEntity<String> getReference(Long referenceId) {
+        return getRaw("/api/ai/references/" + referenceId);
+    }
+
+    public static AIServiceCompareRequest toAIServiceCompareRequest(CompareRequestDTO request, Long userId) {
+        String audioFile = toUploadFileName(request.getPerformanceAudioUrl());
+        if ((audioFile == null) == (request.getAnalysisId() == null)) {
+            throw new IllegalArgumentException("Give exactly one of performanceAudioUrl or analysisId");
+        }
+        return new AIServiceCompareRequest(userId, request.getReferenceId(), audioFile, request.getAnalysisId());
+    }
+
+    public ResponseEntity<String> compare(CompareRequestDTO request, Long userId) {
+        return exchangeRaw(HttpMethod.POST, "/api/ai/compare", toAIServiceCompareRequest(request, userId));
+    }
+
+    public ResponseEntity<String> getComparisonStatus(Long comparisonId) {
+        return getRaw("/api/ai/compare/" + comparisonId + "/status");
+    }
+
+    public ResponseEntity<String> getComparisonResult(Long comparisonId) {
+        return getRaw("/api/ai/compare/" + comparisonId + "/result");
+    }
+
+    private static String requireUploadFileName(String uploadReference, String field) {
+        String fileName = toUploadFileName(uploadReference);
+        if (fileName == null) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+        return fileName;
+    }
+
+    // --- Pass-through helpers -------------------------------------------------------------
+
     private ResponseEntity<String> getRaw(String path) {
+        return exchangeRaw(HttpMethod.GET, path, null);
+    }
+
+    /**
+     * Pass-through call: the body (if any) is sent in snake_case, and the AI service's JSON
+     * body AND status code reach the frontend unchanged, so e.g.
+     * 400 {"detail": "Analysis not completed yet"} is not turned into 500.
+     */
+    private ResponseEntity<String> exchangeRaw(HttpMethod method, String path, Object body) {
         try {
-            ResponseEntity<String> response = rawRestTemplate.getForEntity(aiServiceUrl + path, String.class);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            String json = body == null ? null : aiObjectMapper().writeValueAsString(body);
+            ResponseEntity<String> response = rawRestTemplate.exchange(
+                    aiServiceUrl + path, method, new HttpEntity<>(json, headers), String.class);
             return ResponseEntity.status(response.getStatusCode())
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(response.getBody());
