@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { decodeBlob, encodeWav, toMono } from './wav'
+import { ANALYSIS_RATE, decodeBlob, encodeWav, resampleMono } from './wav'
 
 /**
  * Microphone recording with live analysis.
  *
  * - getUserMedia -> MediaStreamSource -> AnalyserNode: the analyser feeds the live level
  *   meter and waveform (read it with getAnalyser()).
- * - MediaRecorder captures the take; on stop it is decoded and re-encoded as a mono WAV, the
- *   format the backend accepts.
+ * - MediaRecorder captures the take; on stop it is decoded, resampled to 22.05 kHz mono and
+ *   re-encoded as WAV, the format the backend accepts and the rate the AI service analyses at.
  * - Browser audio processing (echo cancellation, noise suppression, auto gain) is switched off,
  *   because it would change the very pitch and dynamics we want to measure.
  *
@@ -55,7 +55,8 @@ const useRecorder = () => {
         try {
           const recorded = new Blob(chunks, { type: recorder.mimeType })
           const buffer = await decodeBlob(recorded)
-          const blob = encodeWav(toMono(buffer), buffer.sampleRate)
+          // 22.05 kHz mono WAV: what the AI service analyses, at half the size of 44.1/48 kHz.
+          const blob = encodeWav(await resampleMono(buffer), ANALYSIS_RATE)
           setResult({ blob, url: URL.createObjectURL(blob), buffer, duration: buffer.duration })
           setStatus('done')
         } catch {

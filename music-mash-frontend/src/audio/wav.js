@@ -70,3 +70,17 @@ export const decodeBlob = async (blob) => {
     context.close()
   }
 }
+
+/** The AI service analyses audio at 22 050 Hz, so uploads are resampled to it (half a 44.1/48 kHz file). */
+export const ANALYSIS_RATE = 22050
+
+/** Mono samples at ANALYSIS_RATE, rendered with an OfflineAudioContext (browser-quality resampling). */
+export const resampleMono = async (audioBuffer, rate = ANALYSIS_RATE) => {
+  if (audioBuffer.sampleRate === rate) return toMono(audioBuffer)
+  const offline = new OfflineAudioContext(1, Math.ceil(audioBuffer.duration * rate), rate)
+  const source = offline.createBufferSource()
+  source.buffer = audioBuffer
+  source.connect(offline.destination)   // 1 output channel: the input is downmixed to mono
+  source.start()
+  return (await offline.startRendering()).getChannelData(0)
+}
