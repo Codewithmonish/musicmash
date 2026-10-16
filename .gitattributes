@@ -1,0 +1,3 @@
+
+# Windows batch files need CRLF
+*.bat text eol=crlf
