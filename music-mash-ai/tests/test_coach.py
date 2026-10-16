@@ -10,7 +10,8 @@ from app.models import AIAnalysis, AnalysisStatus, AudioFeatures, Comparison, Re
 from app.schemas.coach import CoachResponse, LLMCoachOutput
 from app.services.coach.diagnosis import diagnose
 from app.services.coach.knowledge import KNOWLEDGE_DIR, KnowledgeBase, chunk_doc, load_docs, parse_doc
-from app.services.coach_service import build_coaching, exercise_excerpt, grounding_problems, how_long_of, numbers_in
+from app.services.coach_service import (build_coaching, exercise_excerpt, grounding_problems, how_long_of,
+                                         numbers_in, short_how_long)
 from main import app
 
 # A take that is clearly sharp, rushes, and has one very sharp note. Units as stored.
@@ -177,6 +178,7 @@ def test_doc_text_helpers():
     text = "# T\n\nIntro.\n\n## Exercise\n1. Do it.\n\n**How long:** 10 minutes a day."
     assert exercise_excerpt(text) == "1. Do it."
     assert how_long_of(text) == "10 minutes a day."
+    assert short_how_long("10 minutes a day for a week. Re-record and compare.") == "10 minutes a day for a week"
 
 
 # --- Pipeline: basic mode and mocked LLM ------------------------------------------------------

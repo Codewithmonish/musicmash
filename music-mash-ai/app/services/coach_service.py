@@ -90,6 +90,11 @@ def how_long_of(text: str) -> Optional[str]:
     return match.group(1).strip() if match else None
 
 
+def short_how_long(how_long: str) -> str:
+    """First sentence of a How-long line: '10 minutes a day. Re-record…' → '10 minutes a day'."""
+    return how_long.split(". ")[0].rstrip(".")
+
+
 def exercise_excerpt(text: str) -> str:
     """The '## Exercise…' section of a chunk (up to the next heading or the How-long line),
     or the chunk body without its title when there is no such section."""
@@ -147,7 +152,7 @@ def basic_plan(diagnoses: list[Diagnosis], exercises: list[RetrievedExercise]) -
     plan = []
     for day in range(1, 7):
         diagnosis = diagnoses[(day - 1) % len(diagnoses)]
-        tasks = [e.source_doc.title + (f" ({e.how_long})" if e.how_long else "")
+        tasks = [e.source_doc.title + (f" ({short_how_long(e.how_long)})" if e.how_long else "")
                  for e in by_key.get(diagnosis.key, [])] or ["Slow practice on the passages flagged in the analysis"]
         plan.append(PlanDay(day=day, focus=diagnosis.label, tasks=tasks))
     plan.append(PlanDay(day=7, focus="Check your progress",
