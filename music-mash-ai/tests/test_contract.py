@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from app.schemas import AnalysisResponse
 
@@ -62,3 +63,11 @@ def test_spring_compare_request_is_accepted_and_response_matches_contract(
 
     assert response.status_code == 200, response.text
     assert set(response.json()) == set(load("ai-compare-response.json"))
+
+
+def test_spring_coach_request_matches_the_schema():
+    from app.schemas.coach import CoachRequest
+    request = CoachRequest.model_validate(load("ai-coach-request.json"))
+    assert (request.level, request.refresh) == ("BEGINNER", False)
+    with pytest.raises(ValueError):
+        CoachRequest.model_validate({"level": "BEGINNER", "forceRefresh": True})

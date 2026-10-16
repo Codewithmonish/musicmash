@@ -5,6 +5,7 @@ from app.models.practice_recommendation import PracticeRecommendation
 from app.models.model_version import ModelVersion
 from app.models.reference_track import ReferenceTrack
 from app.models.comparison import Comparison
+from app.models.coach_report import CoachReport
 
 __all__ = [
     "AIAnalysis",
@@ -15,4 +16,5 @@ __all__ = [
     "ModelVersion",
     "ReferenceTrack",
     "Comparison",
+    "CoachReport",
 ]
