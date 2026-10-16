@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from app.models import AIAnalysis, AnalysisStatus, AudioFeatures, Comparison, ReferenceTrack
 from app.schemas.coach import CoachResponse, LLMCoachOutput
 from app.services.coach.diagnosis import diagnose
-from app.services.coach.knowledge import KNOWLEDGE_DIR, KnowledgeBase, chunk_doc, load_docs, parse_doc
+from app.services.coach.knowledge import KNOWLEDGE_DIR, chunk_doc, load_docs, parse_doc
 from app.services.coach_service import (build_coaching, exercise_excerpt, grounding_problems, how_long_of,
                                          numbers_in, short_how_long)
 from main import app
@@ -95,22 +95,12 @@ def test_parse_doc_rejects_missing_front_matter(tmp_path):
         parse_doc(bad)
 
 
-@pytest.fixture(scope="module")
-def kb(tmp_path_factory) -> KnowledgeBase:
-    """The real knowledge base, embedded with the real model into a temporary Chroma dir."""
-    st = pytest.importorskip("sentence_transformers")
-    try:
-        model = st.SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-    except Exception as e:  # first run needs the internet to download the model
-        pytest.skip(f"embedding model not available: {e}")
-    knowledge = KnowledgeBase(tmp_path_factory.mktemp("chroma"), model)
-    knowledge.rebuild(load_docs(KNOWLEDGE_DIR))
-    return knowledge
+# kb (fake embeddings) and real_kb (all-MiniLM-L6-v2, slow) come from conftest.py.
 
-
-def test_retrieval_returns_intonation_docs_for_an_intonation_problem(kb):
+@pytest.mark.slow
+def test_retrieval_returns_intonation_docs_for_an_intonation_problem(real_kb):
     diagnosis = diagnose(SHARP_RUSHED)[0]
-    chunks = kb.retrieve(diagnosis.query, diagnosis.tag, "VIOLIN", "INTERMEDIATE", k=3)
+    chunks = real_kb.retrieve(diagnosis.query, diagnosis.tag, "VIOLIN", "INTERMEDIATE", k=3)
     docs = {d.doc_id: d for d in load_docs(KNOWLEDGE_DIR)}
     assert len(chunks) == 3
     for chunk in chunks:
@@ -118,6 +108,17 @@ def test_retrieval_returns_intonation_docs_for_an_intonation_problem(kb):
         assert "sharp" in doc.problem_tags
         assert set(doc.instruments) & {"any", "violin"}
     assert chunks[0].doc_id == "intonation-sharp-tendency"
+
+
+def test_retrieval_only_returns_docs_for_the_problem_tag(kb):
+    """Fast version: the metadata filter alone guarantees on-topic docs, whatever the embedding."""
+    docs = {d.doc_id: d for d in load_docs(KNOWLEDGE_DIR)}
+    for tag in ("sharp", "rushing", "note_stability"):
+        chunks = kb.retrieve(f"{tag} problem", tag, "VIOLIN", "INTERMEDIATE", k=3)
+        assert chunks
+        for chunk in chunks:
+            assert tag in docs[chunk.doc_id].problem_tags
+            assert set(docs[chunk.doc_id].instruments) & {"any", "violin"}
 
 
 def test_retrieval_respects_instrument_and_level(kb):
@@ -159,7 +160,7 @@ def test_numbers_are_normalised():
 
 
 def test_grounding_rejects_invented_evidence_numbers_and_sources(kb):
-    chunks = {c.doc_id: c for c in kb.retrieve(diagnose(SHARP_RUSHED)[0].query, "sharp", None, None, k=3)}
+    chunks = {c.doc_id: c for c in kb.retrieve(diagnose(SHARP_RUSHED)[0].query, "sharp", None, None, k=10)}
     allowed = set(diagnose(SHARP_RUSHED)[0].evidence)
     assert grounding_problems(_grounded_output(), allowed, chunks) == []
 
@@ -235,7 +236,7 @@ def test_ungrounded_or_failing_llm_falls_back_to_basic_mode(kb):
 def analysis_id(setup_database):
     from tests.conftest import TestingSessionLocal
     db = TestingSessionLocal()
-    analysis = AIAnalysis(user_id=7, audio_file="take.wav", instrument="VIOLIN", status=AnalysisStatus.COMPLETED)
+    analysis = AIAnalysis(user_id=1, audio_file="take.wav", instrument="VIOLIN", status=AnalysisStatus.COMPLETED)
     db.add(analysis)
     db.commit()
     fields = {k: v for k, v in SHARP_RUSHED.items() if k not in ("notes", "unavailable_reasons")}
@@ -244,7 +245,7 @@ def analysis_id(setup_database):
     reference = ReferenceTrack(title="ref", file_path="ref.wav", status=AnalysisStatus.COMPLETED)
     db.add(reference)
     db.commit()
-    db.add(Comparison(user_id=7, reference_id=reference.id, analysis_id=analysis.id, performance_audio_file="take.wav",
+    db.add(Comparison(user_id=1, reference_id=reference.id, analysis_id=analysis.id, performance_audio_file="take.wav",
                       status=AnalysisStatus.COMPLETED,
                       result=json.dumps({"problem_sections": [{"user_start": 8.0, "user_end": 11.0, "ref_start": 8.0,
                                                                "ref_end": 12.0, "issue": "rushing",

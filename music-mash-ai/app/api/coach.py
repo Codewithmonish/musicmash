@@ -6,9 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from langchain_core.runnables import Runnable
 from sqlalchemy.orm import Session
 
+from app.api.ownership import owned_analysis, requester_id
 from app.core.config import settings
 from app.database.database import get_db
-from app.models import AIAnalysis, AnalysisStatus, AudioFeatures, CoachReport, Comparison
+from app.models import AnalysisStatus, AudioFeatures, CoachReport, Comparison
 from app.schemas.coach import CoachRequest, CoachResponse
 from app.services.coach.knowledge import KnowledgeBase
 from app.services.coach_service import build_coaching, get_knowledge_base, make_structured_llm, metrics_dict
@@ -35,16 +36,15 @@ def _problem_sections(analysis_id: int, db: Session) -> list[dict]:
 @router.post("/coach/{analysis_id}", response_model=CoachResponse)
 def coach(analysis_id: int, request: Optional[CoachRequest] = None, db: Session = Depends(get_db),
           kb: KnowledgeBase = Depends(get_knowledge_base),
-          structured_llm: Optional[Runnable] = Depends(get_structured_llm)):
+          structured_llm: Optional[Runnable] = Depends(get_structured_llm),
+          user_id: int = Depends(requester_id)):
     """Coaching for a completed analysis.
 
     Returns the cached result unless `refresh` is set, or the cache is basic mode and an LLM
     is now available. Basic mode (no LLM text) is used when no LLM_API_KEY is configured.
     """
     request = request or CoachRequest()
-    analysis = db.query(AIAnalysis).filter(AIAnalysis.id == analysis_id).first()
-    if analysis is None:
-        raise HTTPException(status_code=404, detail="Analysis not found")
+    analysis = owned_analysis(db, analysis_id, user_id)
     if analysis.status != AnalysisStatus.COMPLETED:
         raise HTTPException(status_code=400, detail="Analysis not completed yet")
     features = db.query(AudioFeatures).filter(AudioFeatures.analysis_id == analysis_id).first()

@@ -34,6 +34,8 @@ import java.util.regex.Pattern;
 public class AIIntegrationService {
 
     /** Prefix of the references FileStorageService returns, e.g. "/uploads/3f2a....wav". */
+    /** Carries the authenticated user's id on every call to the AI service. */
+    public static final String USER_HEADER = "X-User-Id";
     static final String UPLOAD_PREFIX = "/uploads/";
     private static final Pattern PLAIN_FILE_NAME = Pattern.compile("^[A-Za-z0-9_-][A-Za-z0-9._-]{0,254}$");
 
@@ -117,16 +119,16 @@ public class AIIntegrationService {
         }
     }
 
-    public ResponseEntity<String> getAnalysisStatus(Long analysisId) {
-        return getRaw("/api/ai/status/" + analysisId);
+    public ResponseEntity<String> getAnalysisStatus(Long analysisId, Long userId) {
+        return getRaw("/api/ai/status/" + analysisId, userId);
     }
 
-    public ResponseEntity<String> getAnalysisResult(Long analysisId) {
-        return getRaw("/api/ai/result/" + analysisId);
+    public ResponseEntity<String> getAnalysisResult(Long analysisId, Long userId) {
+        return getRaw("/api/ai/result/" + analysisId, userId);
     }
 
-    public ResponseEntity<String> getPitchContour(Long analysisId) {
-        return getRaw("/api/ai/result/" + analysisId + "/pitch-contour");
+    public ResponseEntity<String> getPitchContour(Long analysisId, Long userId) {
+        return getRaw("/api/ai/result/" + analysisId + "/pitch-contour", userId);
     }
 
     // --- Reference tracks and comparisons (Phase 3) ------------------------------------
@@ -135,15 +137,15 @@ public class AIIntegrationService {
         AIServiceReferenceRequest body = new AIServiceReferenceRequest(
                 request.getTitle(), request.getArtist(), request.getInstrument(),
                 requireUploadFileName(request.getAudioUrl(), "audioUrl"), userId);
-        return exchangeRaw(HttpMethod.POST, "/api/ai/references", body);
+        return exchangeRaw(HttpMethod.POST, "/api/ai/references", body, userId);
     }
 
     public ResponseEntity<String> listReferences() {
-        return getRaw("/api/ai/references");
+        return getRaw("/api/ai/references", null);
     }
 
     public ResponseEntity<String> getReference(Long referenceId) {
-        return getRaw("/api/ai/references/" + referenceId);
+        return getRaw("/api/ai/references/" + referenceId, null);
     }
 
     public static AIServiceCompareRequest toAIServiceCompareRequest(CompareRequestDTO request, Long userId) {
@@ -155,20 +157,20 @@ public class AIIntegrationService {
     }
 
     public ResponseEntity<String> compare(CompareRequestDTO request, Long userId) {
-        return exchangeRaw(HttpMethod.POST, "/api/ai/compare", toAIServiceCompareRequest(request, userId));
+        return exchangeRaw(HttpMethod.POST, "/api/ai/compare", toAIServiceCompareRequest(request, userId), userId);
     }
 
-    public ResponseEntity<String> getComparisonStatus(Long comparisonId) {
-        return getRaw("/api/ai/compare/" + comparisonId + "/status");
+    public ResponseEntity<String> getComparisonStatus(Long comparisonId, Long userId) {
+        return getRaw("/api/ai/compare/" + comparisonId + "/status", userId);
     }
 
-    public ResponseEntity<String> getComparisonResult(Long comparisonId) {
-        return getRaw("/api/ai/compare/" + comparisonId + "/result");
+    public ResponseEntity<String> getComparisonResult(Long comparisonId, Long userId) {
+        return getRaw("/api/ai/compare/" + comparisonId + "/result", userId);
     }
 
     /** AI coach for one analysis (cached by the AI service; may take a few seconds with an LLM). */
-    public ResponseEntity<String> coach(Long analysisId, String level, boolean refresh) {
-        return exchangeRaw(HttpMethod.POST, "/api/ai/coach/" + analysisId, new AIServiceCoachRequest(level, refresh));
+    public ResponseEntity<String> coach(Long analysisId, Long userId, String level, boolean refresh) {
+        return exchangeRaw(HttpMethod.POST, "/api/ai/coach/" + analysisId, new AIServiceCoachRequest(level, refresh), userId);
     }
 
     private static String requireUploadFileName(String uploadReference, String field) {
@@ -181,8 +183,20 @@ public class AIIntegrationService {
 
     // --- Pass-through helpers -------------------------------------------------------------
 
-    private ResponseEntity<String> getRaw(String path) {
-        return exchangeRaw(HttpMethod.GET, path, null);
+    private ResponseEntity<String> getRaw(String path, Long userId) {
+        return exchangeRaw(HttpMethod.GET, path, null, userId);
+    }
+
+    /**
+     * Headers carrying the caller's id. The AI service only returns analyses, comparisons and
+     * coaching that belong to this user (404 otherwise); reference tracks are shared (userId null).
+     */
+    static HttpHeaders userHeaders(Long userId) {
+        HttpHeaders headers = new HttpHeaders();
+        if (userId != null) {
+            headers.set(USER_HEADER, userId.toString());
+        }
+        return headers;
     }
 
     /**
@@ -190,9 +204,9 @@ public class AIIntegrationService {
      * body AND status code reach the frontend unchanged, so e.g.
      * 400 {"detail": "Analysis not completed yet"} is not turned into 500.
      */
-    private ResponseEntity<String> exchangeRaw(HttpMethod method, String path, Object body) {
+    private ResponseEntity<String> exchangeRaw(HttpMethod method, String path, Object body, Long userId) {
         try {
-            HttpHeaders headers = new HttpHeaders();
+            HttpHeaders headers = userHeaders(userId);
             headers.setContentType(MediaType.APPLICATION_JSON);
             String json = body == null ? null : aiObjectMapper().writeValueAsString(body);
             ResponseEntity<String> response = rawRestTemplate.exchange(

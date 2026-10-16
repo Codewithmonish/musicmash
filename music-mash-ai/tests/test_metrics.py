@@ -76,7 +76,9 @@ def clean_clicks():
 def jittered_clicks():
     rng = np.random.default_rng(seed=0)
     times = beat_times(120, 16) + rng.uniform(-0.040, 0.040, size=16)
-    return m.analyze_performance(click_track(times, 9.0), SR)
+    # Only timing is checked here, so skip pitch tracking (clicks are percussion anyway).
+    # clean_clicks keeps the default path, which checks that pYIN finds no pitch in clicks.
+    return m.analyze_performance(click_track(times, 9.0), SR, instrument="DRUMS")
 
 
 # --- Pure helper functions ----------------------------------------------------------------

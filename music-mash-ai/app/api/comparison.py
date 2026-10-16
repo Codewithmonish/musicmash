@@ -4,6 +4,7 @@ import json
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.api.ownership import owned_analysis, owned_comparison, requester_id
 from app.core.uploads import UploadPathError, resolve_upload
 from app.database.database import get_db
 from app.models import AnalysisStatus, Comparison, ReferenceTrack
@@ -76,6 +77,7 @@ def create_comparison(request: CompareRequest, background_tasks: BackgroundTasks
 
     audio_file = request.performance_audio_file
     if request.analysis_id is not None:
+        owned_analysis(db, request.analysis_id, request.user_id)   # only your own takes
         audio_file = audio_file_of_analysis(request.analysis_id, db)
         if audio_file is None:
             raise HTTPException(status_code=404, detail="Analysis not found")
@@ -93,21 +95,14 @@ def create_comparison(request: CompareRequest, background_tasks: BackgroundTasks
                               message="Comparison queued for processing", created_at=comparison.created_at)
 
 
-def _get_comparison(comparison_id: int, db: Session) -> Comparison:
-    comparison = db.query(Comparison).filter(Comparison.id == comparison_id).first()
-    if comparison is None:
-        raise HTTPException(status_code=404, detail="Comparison not found")
-    return comparison
-
-
 @router.get("/compare/{comparison_id}/status", response_model=ComparisonStatusResponse)
-def get_comparison_status(comparison_id: int, db: Session = Depends(get_db)):
-    return _get_comparison(comparison_id, db)
+def get_comparison_status(comparison_id: int, db: Session = Depends(get_db), user_id: int = Depends(requester_id)):
+    return owned_comparison(db, comparison_id, user_id)
 
 
 @router.get("/compare/{comparison_id}/result", response_model=ComparisonResultResponse)
-def get_comparison_result(comparison_id: int, db: Session = Depends(get_db)):
-    comparison = _get_comparison(comparison_id, db)
+def get_comparison_result(comparison_id: int, db: Session = Depends(get_db), user_id: int = Depends(requester_id)):
+    comparison = owned_comparison(db, comparison_id, user_id)
     if comparison.status != AnalysisStatus.COMPLETED:
         raise HTTPException(status_code=400, detail="Comparison not completed yet")
     reference = db.query(ReferenceTrack).filter(ReferenceTrack.id == comparison.reference_id).first()

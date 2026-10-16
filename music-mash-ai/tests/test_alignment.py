@@ -11,7 +11,9 @@ import pytest
 from app.services.audio import alignment as A
 
 SR = 22050
-FMIN, FMAX = float(librosa.note_to_hz("C2")), float(librosa.note_to_hz("C7"))
+# Search C3-C6: covers every test melody (A3-D5). pYIN cost grows with the square of the range,
+# so a wider search would only make the tests slower without testing anything more.
+FMIN, FMAX = float(librosa.note_to_hz("C3")), float(librosa.note_to_hz("C6"))
 TUNE = ["C4", "E4", "G4", "C5", "B4", "G4", "E4", "D4", "F4", "A4", "C5", "D5", "C5", "A4", "F4", "D4"]
 OTHER = ["A3", "C4", "F4", "E4", "D4", "B3", "G4", "F4", "A3", "B3", "E4", "C4", "G4", "D4", "A3", "E4"]
 

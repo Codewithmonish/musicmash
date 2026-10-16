@@ -102,4 +102,11 @@ class AIServiceContractTest {
         JsonNode sent = plainMapper.readTree(aiMapper.writeValueAsString(new AIServiceCoachRequest("BEGINNER", false)));
         assertEquals(fixture("ai-coach-request.json"), sent);
     }
+
+    @Test
+    void everyCallToTheAIServiceCarriesTheUserId() {
+        assertEquals("7", AIIntegrationService.userHeaders(7L).getFirst(AIIntegrationService.USER_HEADER));
+        // Shared reference-track reads send no user id.
+        assertFalse(AIIntegrationService.userHeaders(null).containsKey(AIIntegrationService.USER_HEADER));
+    }
 }

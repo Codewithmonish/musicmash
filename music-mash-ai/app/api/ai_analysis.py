@@ -15,6 +15,7 @@ from app.utils.logging import log
 from datetime import datetime
 from typing import Optional
 from app.core.uploads import UploadPathError, resolve_upload
+from app.api.ownership import owned_analysis, requester_id
 import json
 
 router = APIRouter(prefix="/api/ai", tags=["AI Analysis"])
@@ -86,15 +87,13 @@ async def analyze_performance(
 
 
 @router.get("/status/{analysis_id}", response_model=AnalysisStatusResponse)
-async def get_analysis_status(analysis_id: int, db: Session = Depends(get_db)):
+async def get_analysis_status(analysis_id: int, db: Session = Depends(get_db),
+                              user_id: int = Depends(requester_id)):
     """
     Get the status of an analysis.
     """
     try:
-        analysis = db.query(AIAnalysis).filter(AIAnalysis.id == analysis_id).first()
-        
-        if not analysis:
-            raise HTTPException(status_code=404, detail="Analysis not found")
+        analysis = owned_analysis(db, analysis_id, user_id)
         
         return AnalysisStatusResponse(
             id=analysis.id,
@@ -113,15 +112,13 @@ async def get_analysis_status(analysis_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/result/{analysis_id}", response_model=AnalysisResultResponse)
-async def get_analysis_result(analysis_id: int, db: Session = Depends(get_db)):
+async def get_analysis_result(analysis_id: int, db: Session = Depends(get_db),
+                              user_id: int = Depends(requester_id)):
     """
     Get the complete result of an analysis.
     """
     try:
-        analysis = db.query(AIAnalysis).filter(AIAnalysis.id == analysis_id).first()
-        
-        if not analysis:
-            raise HTTPException(status_code=404, detail="Analysis not found")
+        analysis = owned_analysis(db, analysis_id, user_id)
         
         if analysis.status != AnalysisStatus.COMPLETED:
             raise HTTPException(status_code=400, detail="Analysis not completed yet")
@@ -151,15 +148,14 @@ async def get_analysis_result(analysis_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/result/{analysis_id}/pitch-contour", response_model=PitchContourResponse)
-async def get_pitch_contour(analysis_id: int, db: Session = Depends(get_db)):
+async def get_pitch_contour(analysis_id: int, db: Session = Depends(get_db),
+                            user_id: int = Depends(requester_id)):
     """
     Get the downsampled pitch curve and segmented notes of a completed analysis.
 
     The contour is computed and stored during analysis, so this is a plain read.
     """
-    analysis = db.query(AIAnalysis).filter(AIAnalysis.id == analysis_id).first()
-    if not analysis:
-        raise HTTPException(status_code=404, detail="Analysis not found")
+    analysis = owned_analysis(db, analysis_id, user_id)
     if analysis.status != AnalysisStatus.COMPLETED:
         raise HTTPException(status_code=400, detail="Analysis not completed yet")
 

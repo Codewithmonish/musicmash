@@ -6,6 +6,7 @@ import com.musicmash.dto.CoachRequestDTO;
 import com.musicmash.dto.CompareRequestDTO;
 import com.musicmash.dto.ReferenceUploadRequestDTO;
 import com.musicmash.entity.User;
+import com.musicmash.repository.PerformanceRepository;
 import com.musicmash.repository.ProfileRepository;
 import com.musicmash.repository.UserRepository;
 import com.musicmash.service.AIIntegrationService;
@@ -23,12 +24,14 @@ public class AIController {
     private final AIIntegrationService aiIntegrationService;
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
+    private final PerformanceRepository performanceRepository;
 
     public AIController(AIIntegrationService aiIntegrationService, UserRepository userRepository,
-                        ProfileRepository profileRepository) {
+                        ProfileRepository profileRepository, PerformanceRepository performanceRepository) {
         this.aiIntegrationService = aiIntegrationService;
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
+        this.performanceRepository = performanceRepository;
     }
 
     @PostMapping("/analyze")
@@ -41,6 +44,11 @@ public class AIController {
 
         // Set user ID from authenticated user
         request.setUserId(user.getId());
+        // A performance can only be analysed by its owner (same 404 as a missing id).
+        if (request.getPerformanceId() != null && !performanceRepository.findById(request.getPerformanceId())
+                .map(performance -> performance.getUser().getId().equals(user.getId())).orElse(false)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Performance not found");
+        }
 
         try {
             AIAnalysisResponseDTO response = aiIntegrationService.submitForAnalysis(request);
@@ -51,18 +59,18 @@ public class AIController {
     }
 
     @GetMapping("/status/{analysisId}")
-    public ResponseEntity<String> getAnalysisStatus(@PathVariable Long analysisId) {
-        return aiIntegrationService.getAnalysisStatus(analysisId);
+    public ResponseEntity<String> getAnalysisStatus(@PathVariable Long analysisId, Authentication authentication) {
+        return aiIntegrationService.getAnalysisStatus(analysisId, currentUser(authentication).getId());
     }
 
     @GetMapping("/result/{analysisId}")
-    public ResponseEntity<String> getAnalysisResult(@PathVariable Long analysisId) {
-        return aiIntegrationService.getAnalysisResult(analysisId);
+    public ResponseEntity<String> getAnalysisResult(@PathVariable Long analysisId, Authentication authentication) {
+        return aiIntegrationService.getAnalysisResult(analysisId, currentUser(authentication).getId());
     }
 
     @GetMapping("/result/{analysisId}/pitch-contour")
-    public ResponseEntity<String> getPitchContour(@PathVariable Long analysisId) {
-        return aiIntegrationService.getPitchContour(analysisId);
+    public ResponseEntity<String> getPitchContour(@PathVariable Long analysisId, Authentication authentication) {
+        return aiIntegrationService.getPitchContour(analysisId, currentUser(authentication).getId());
     }
 
     // --- Reference tracks and comparisons (Phase 3) ------------------------------------
@@ -102,13 +110,13 @@ public class AIController {
     }
 
     @GetMapping("/compare/{comparisonId}/status")
-    public ResponseEntity<String> getComparisonStatus(@PathVariable Long comparisonId) {
-        return aiIntegrationService.getComparisonStatus(comparisonId);
+    public ResponseEntity<String> getComparisonStatus(@PathVariable Long comparisonId, Authentication authentication) {
+        return aiIntegrationService.getComparisonStatus(comparisonId, currentUser(authentication).getId());
     }
 
     @GetMapping("/compare/{comparisonId}/result")
-    public ResponseEntity<String> getComparisonResult(@PathVariable Long comparisonId) {
-        return aiIntegrationService.getComparisonResult(comparisonId);
+    public ResponseEntity<String> getComparisonResult(@PathVariable Long comparisonId, Authentication authentication) {
+        return aiIntegrationService.getComparisonResult(comparisonId, currentUser(authentication).getId());
     }
 
     /** AI coach for an analysis; the user's experience level is taken from their profile. */
@@ -121,7 +129,7 @@ public class AIController {
                 .map(profile -> profile.getExperienceLevel() == null ? null : profile.getExperienceLevel().name())
                 .orElse(null);
         boolean refresh = request != null && Boolean.TRUE.equals(request.getRefresh());
-        return aiIntegrationService.coach(analysisId, level, refresh);
+        return aiIntegrationService.coach(analysisId, user.getId(), level, refresh);
     }
 
     private User currentUser(Authentication authentication) {

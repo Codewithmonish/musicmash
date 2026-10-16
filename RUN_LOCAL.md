@@ -169,10 +169,22 @@ music-mash-ai\.venv\Scripts\python scripts\reset_dev_db.py
 ## Tests
 
 ```powershell
-cd music-mash-ai;      .venv\Scripts\python -m pytest;  cd ..   # AI service
+cd music-mash-ai;      .venv\Scripts\python -m pytest;  cd ..   # AI service, fast suite (what CI runs)
 cd music-mash-backend; mvn test;                        cd ..   # Spring contract tests
 cd music-mash-frontend; npm run build;                  cd ..   # frontend must build
 ```
+
+The default AI suite uses fake embeddings for the coach (no model download) and skips tests
+marked `slow`. Those need the real embedding model (about 90 MB, downloaded once):
+
+```powershell
+cd music-mash-ai
+.venv\Scripts\python -m pytest -m slow                 # only the slow tests
+.venv\Scripts\python -m pytest -m "slow or not slow"   # everything
+```
+
+Timing varies a lot with the laptop's power state: pYIN pitch tracking is CPU-bound, so the
+suite is noticeably slower on battery.
 
 ## Troubleshooting
 

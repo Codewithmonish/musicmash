@@ -103,7 +103,7 @@ public class PracticeService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
         Exercise exercise = exerciseRepository.findById(exerciseId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exercise not found"));
-        MeasuredScores scores = fetchScores(analysisId);
+        MeasuredScores scores = fetchScores(analysisId, userId);
         int xp = xpFor(exercise.getXpReward(), scores.overall());
 
         PracticeSession session = new PracticeSession(user, exercise.getTitle(), exercise.getInstrument(),
@@ -145,11 +145,14 @@ public class PracticeService {
         return response;
     }
 
-    private MeasuredScores fetchScores(Long analysisId) {
+    private MeasuredScores fetchScores(Long analysisId, Long userId) {
         if (analysisId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "analysisId is required: sessions are scored from a real analysis");
         }
-        ResponseEntity<String> response = aiIntegrationService.getAnalysisResult(analysisId);
+        ResponseEntity<String> response = aiIntegrationService.getAnalysisResult(analysisId, userId);
+        if (response.getStatusCode().value() == 404) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Analysis not found");
+        }
         if (!response.getStatusCode().is2xxSuccessful()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "The analysis is not finished, so the session cannot be scored yet");
         }
