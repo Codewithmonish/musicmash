@@ -1,5 +1,50 @@
 # Music Mash - Platform Architecture
 
+## Run MusicMash (one click)
+
+Double-click **MusicMash** on your Desktop, or `MusicMash.bat` in the repo root. A window opens,
+shows what it is doing, and opens **http://localhost:8081** in your browser when everything is
+ready. Press any key in that window (or just close it) to stop MusicMash.
+
+| Launch | Time until the browser opens |
+|---|---|
+| Very first launch on a new PC (Python packages, ~1 GB download) | 10–20 minutes (estimate, depends on your connection) |
+| After code changes (frontend + jar rebuilt, ~1 minute) | about 1.5–2 minutes |
+| Later launches (nothing changed) | about 35–40 seconds (measured: 33–39 s) |
+
+**You need** (once): Java 17+, Node.js 18+, Maven, Python 3.11+, and MySQL running as a Windows
+service, plus `music-mash-backend\.env` (copy `.env.example`, fill in `DB_USERNAME`,
+`DB_PASSWORD`, `JWT_SECRET`). `music-mash-ai\.env` is optional: add `LLM_API_KEY` there to switch
+the AI coach from basic mode to Gemini.
+
+What the launcher (`scripts\launch.ps1`) does:
+
+1. First run only: creates `music-mash-ai\.venv` and installs the Python packages, builds the AI
+   coach's knowledge index. It reinstalls only if `requirements.txt` changes.
+2. Runs `scripts\build_app.ps1`: `npm install`, `npm run build:app` (copied into Spring's static
+   folder) and `mvn package`, each only when its sources changed since the last build.
+3. Checks MySQL on port 3306 and tries to start the MySQL Windows service if it is stopped. If
+   that needs administrator rights it tells you exactly how to start it, then exits.
+4. Loads `music-mash-backend\.env` for Spring and `music-mash-ai\.env` for the AI service, without
+   ever printing the values.
+5. Starts the AI service (port 8000) and Spring (port 8081) hidden, waits for both health checks
+   (`/health` and `/api/public/health`), then opens the browser. React is served by Spring, so
+   there is one address.
+6. If a port is held by an earlier MusicMash run it stops that run; if another program holds it,
+   it tells you which one and exits.
+
+Logs: `logs\launcher.log` (what the window showed), `logs\spring.log`, `logs\fastapi.log`
+(plus `*.err.log`). To recreate the Desktop shortcut:
+`powershell -ExecutionPolicy Bypass -File scripts\create_shortcut.ps1`.
+To check the running app in a real browser: `music-mash-ai\.venv\Scripts\python scripts\check_one_click.py`.
+
+**If your antivirus removes `scripts\launch.ps1`**: McAfee quarantined an earlier version of the
+launcher. The current one uses only ordinary PowerShell, but if a launch window closes
+immediately and the file is gone, restore it from your antivirus's quarantine (or `git checkout
+scripts/launch.ps1`) and mark it as trusted.
+
+Developer setup (hot reload, tests, screenshots): [RUN_LOCAL.md](RUN_LOCAL.md).
+
 ## Overview
 
 Music Mash is a scalable platform for music skill development, connecting musicians with expert judges and AI-powered feedback systems. The platform provides an accessible way for talented musicians to showcase their skills, receive professional feedback, and compete in a supportive community.

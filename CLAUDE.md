@@ -81,6 +81,7 @@ Update this list at the end of each phase (one line per item).
 - [x] Phase 3 — reference-track comparison (DTW)
 - [x] UI redesign — dark design system (docs/MUSICMASH_DESIGN_SYSTEM.md), Unsplash imagery, every page rebuilt, real Practice Arena
 - [x] Phase 4 — RAG AI coach (grounded: deterministic diagnosis, Chroma retrieval, Gemini structured output, basic mode without a key)
+- [x] One-click app — MusicMash.bat / Desktop shortcut: setup, build-if-changed, Spring serves React on :8081, clean stop
 - [ ] Phase 5 — instrument auto-detection model
 - [ ] Phase 6 — skill-level model
 - [ ] Phase 7 — integration, cleanup, README
