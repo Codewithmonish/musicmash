@@ -10,6 +10,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import SectionHeader from '../../components/ui/SectionHeader'
 import PitchContourChart, { describeCents } from '../../components/ai/PitchContourChart'
 import ReferenceComparison from '../../components/ai/ReferenceComparison'
+import AICoach from '../../components/ai/AICoach'
 import { IMAGES } from '../../utils/images'
 import { formatDate } from '../../utils/music'
 import api from '../../services/api'
@@ -228,6 +229,9 @@ const AIAnalysisPage = () => {
 
         {/* Reference comparison */}
         <ReferenceComparison analysisId={id} />
+
+        {/* AI coach: diagnosis → retrieved exercises → (optional) grounded LLM advice */}
+        <AICoach analysisId={id} />
 
         {/* Feedback */}
         <section>

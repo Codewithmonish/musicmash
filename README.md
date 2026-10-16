@@ -285,14 +285,33 @@ API endpoints are documented in [API Design](API_DESIGN.md). Once implemented, S
 
 ## AI Features
 
-- Audio performance analysis (pitch, rhythm, tempo)
-- Anti-cheating detection (video-audio sync)
-- Skill level detection
-- AI personal coach
-- AI judge assistant
-- Music similarity detection
-- Collaboration recommendations
-- AI mentor chatbot
+Everything the AI service shows is measured; see
+[music-mash-ai/docs/METRICS.md](music-mash-ai/docs/METRICS.md).
+
+- **Measured pitch and rhythm**: intonation in cents (pYIN), timing error in ms against a
+  fitted beat grid, tempo and tempo drift, note-by-note pitch curve
+- **Reference comparison**: a take aligned with an original recording (DTW), with problem
+  sections such as "sharp", "rushing" or "missing notes"
+  ([ALIGNMENT.md](music-mash-ai/docs/ALIGNMENT.md))
+- **AI coach**: measured problems → matching exercises from a practice library → optional
+  LLM advice that may only quote measured numbers, plus a 7-day plan
+  ([AI_COACH.md](music-mash-ai/docs/AI_COACH.md)). Without an API key it runs in a labelled
+  "basic mode" with no generated text.
+
+### About Chroma (used by the AI coach)
+
+[Chroma](https://www.trychroma.com/) is a small vector database that runs inside the Python
+AI service and keeps its data in a folder (`music-mash-ai/chroma_db/`, gitignored); there is no
+server to install. Each practice doc is turned into an embedding (a list of 384 numbers that
+captures its meaning, from the local `all-MiniLM-L6-v2` model via sentence-transformers) and
+stored with metadata such as its problem tags and instruments. The coach asks Chroma for the
+docs whose embeddings are closest to a problem description, filtered by that metadata.
+Rebuild it after editing `music-mash-ai/knowledge/*.md`:
+
+```powershell
+cd music-mash-ai
+.venv\Scripts\python scripts\build_knowledge_index.py
+```
 
 ## Monitoring
 
