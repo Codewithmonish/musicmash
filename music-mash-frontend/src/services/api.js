@@ -2,6 +2,8 @@ import axios from 'axios'
 
 // All calls use paths relative to the Spring API root (e.g. api.get('/performances')).
 // Accept VITE_API_URL with or without the trailing "/api" so both forms reach the same root.
+// Dev (Vite on 5173): http://localhost:8081/api from .env. One-click app (served by Spring on
+// 8081): "/api" from .env.app, so the browser calls the same address it loaded the page from.
 const configuredBase = (import.meta.env.VITE_API_URL || 'http://localhost:8081/api').replace(/\/+$/, '')
 const API_BASE_URL = configuredBase.endsWith('/api') ? configuredBase : `${configuredBase}/api`
 

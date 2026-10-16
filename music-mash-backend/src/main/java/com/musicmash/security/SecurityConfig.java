@@ -55,7 +55,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/notifications/**").authenticated()
                         .requestMatchers("/api/competitions/**").authenticated()
                         .requestMatchers("/api/leaderboard/**").authenticated()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/**").authenticated()
+                        // Everything outside /api is the built React app (static files and its
+                        // client-side routes such as /dashboard). It holds no data, so it is public;
+                        // the pages fetch their data from /api with the JWT.
+                        .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
