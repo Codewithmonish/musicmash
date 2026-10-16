@@ -2,9 +2,11 @@ package com.musicmash.controller;
 
 import com.musicmash.dto.AIAnalysisRequestDTO;
 import com.musicmash.dto.AIAnalysisResponseDTO;
+import com.musicmash.dto.CoachRequestDTO;
 import com.musicmash.dto.CompareRequestDTO;
 import com.musicmash.dto.ReferenceUploadRequestDTO;
 import com.musicmash.entity.User;
+import com.musicmash.repository.ProfileRepository;
 import com.musicmash.repository.UserRepository;
 import com.musicmash.service.AIIntegrationService;
 import org.springframework.http.HttpStatus;
@@ -20,10 +22,13 @@ public class AIController {
 
     private final AIIntegrationService aiIntegrationService;
     private final UserRepository userRepository;
+    private final ProfileRepository profileRepository;
 
-    public AIController(AIIntegrationService aiIntegrationService, UserRepository userRepository) {
+    public AIController(AIIntegrationService aiIntegrationService, UserRepository userRepository,
+                        ProfileRepository profileRepository) {
         this.aiIntegrationService = aiIntegrationService;
         this.userRepository = userRepository;
+        this.profileRepository = profileRepository;
     }
 
     @PostMapping("/analyze")
@@ -104,6 +109,19 @@ public class AIController {
     @GetMapping("/compare/{comparisonId}/result")
     public ResponseEntity<String> getComparisonResult(@PathVariable Long comparisonId) {
         return aiIntegrationService.getComparisonResult(comparisonId);
+    }
+
+    /** AI coach for an analysis; the user's experience level is taken from their profile. */
+    @PostMapping("/coach/{analysisId}")
+    public ResponseEntity<String> coach(@PathVariable Long analysisId,
+                                        @RequestBody(required = false) CoachRequestDTO request,
+                                        Authentication authentication) {
+        User user = currentUser(authentication);
+        String level = profileRepository.findByUserId(user.getId())
+                .map(profile -> profile.getExperienceLevel() == null ? null : profile.getExperienceLevel().name())
+                .orElse(null);
+        boolean refresh = request != null && Boolean.TRUE.equals(request.getRefresh());
+        return aiIntegrationService.coach(analysisId, level, refresh);
     }
 
     private User currentUser(Authentication authentication) {

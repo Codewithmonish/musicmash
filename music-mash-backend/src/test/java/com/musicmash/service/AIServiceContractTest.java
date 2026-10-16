@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.musicmash.dto.AIAnalysisRequestDTO;
 import com.musicmash.dto.AIAnalysisResponseDTO;
 import com.musicmash.dto.AIServiceAnalyzeRequest;
+import com.musicmash.dto.AIServiceCoachRequest;
 import com.musicmash.dto.AIServiceCompareRequest;
 import com.musicmash.dto.CompareRequestDTO;
 import org.junit.jupiter.api.Test;
@@ -94,5 +95,11 @@ class AIServiceContractTest {
                 new CompareRequestDTO(3L, "/uploads/a.wav", 5L), 7L));
         assertEquals(5L, AIIntegrationService.toAIServiceCompareRequest(
                 new CompareRequestDTO(3L, null, 5L), 7L).analysisId());
+    }
+
+    @Test
+    void coachRequestIsSerialisedExactlyAsTheContract() throws Exception {
+        JsonNode sent = plainMapper.readTree(aiMapper.writeValueAsString(new AIServiceCoachRequest("BEGINNER", false)));
+        assertEquals(fixture("ai-coach-request.json"), sent);
     }
 }

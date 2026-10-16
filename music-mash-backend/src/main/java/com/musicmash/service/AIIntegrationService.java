@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.musicmash.dto.AIAnalysisRequestDTO;
 import com.musicmash.dto.AIAnalysisResponseDTO;
 import com.musicmash.dto.AIServiceAnalyzeRequest;
+import com.musicmash.dto.AIServiceCoachRequest;
 import com.musicmash.dto.AIServiceCompareRequest;
 import com.musicmash.dto.AIServiceReferenceRequest;
 import com.musicmash.dto.CompareRequestDTO;
@@ -163,6 +164,11 @@ public class AIIntegrationService {
 
     public ResponseEntity<String> getComparisonResult(Long comparisonId) {
         return getRaw("/api/ai/compare/" + comparisonId + "/result");
+    }
+
+    /** AI coach for one analysis (cached by the AI service; may take a few seconds with an LLM). */
+    public ResponseEntity<String> coach(Long analysisId, String level, boolean refresh) {
+        return exchangeRaw(HttpMethod.POST, "/api/ai/coach/" + analysisId, new AIServiceCoachRequest(level, refresh));
     }
 
     private static String requireUploadFileName(String uploadReference, String field) {
