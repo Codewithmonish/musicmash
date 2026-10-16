@@ -188,7 +188,12 @@ if (-not (Test-Path (Join-Path $AI 'chroma_db'))) {
     if ($LASTEXITCODE -ne 0) { Write-Host '  Index build failed (see logs\knowledge_index.log); the coach will retry on first use.' -ForegroundColor Yellow }
 }
 
-# --- 2. Build what changed: frontend into Spring, Spring jar ---------------------------------------
+# --- 2. Stop an earlier MusicMash run first: its Spring keeps the jar open, so it could not be rebuilt.
+Step 'Checking ports 8081 and 8000'
+Clear-Port 8081
+Clear-Port 8000
+
+# --- 3. Build what changed: frontend into Spring, Spring jar ---------------------------------------
 Step 'Checking the app build'
 if (-not (Test-Path $Jar) -or -not (Test-Path (Join-Path $Backend 'src\main\resources\static\index.html'))) {
     Require-Command 'npm' 'Node.js 18 or newer' 'https://nodejs.org/'
@@ -197,7 +202,7 @@ if (-not (Test-Path $Jar) -or -not (Test-Path (Join-Path $Backend 'src\main\reso
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'build_app.ps1')
 if ($LASTEXITCODE -ne 0) { Fail 'The app build failed.' @('Scroll up for the error. If npm or mvn is missing, install it and run MusicMash again.') }
 
-# --- 3. Secrets (values never printed) -----------------------------------------------------------
+# --- 4. Secrets (values never printed) -----------------------------------------------------------
 $springEnv = Read-EnvFile (Join-Path $Backend '.env')
 if ($springEnv.Count -eq 0) {
     Fail 'music-mash-backend\.env is missing or empty.' @('Copy music-mash-backend\.env.example to .env and fill in DB_USERNAME, DB_PASSWORD and JWT_SECRET.')
@@ -210,7 +215,7 @@ if (-not $aiEnv.ContainsKey('LLM_API_KEY') -or -not $aiEnv['LLM_API_KEY']) {
     Write-Host '  No LLM_API_KEY in music-mash-ai\.env: the AI coach will run in basic mode.' -ForegroundColor DarkGray
 }
 
-# --- 4. MySQL ----------------------------------------------------------------------------------
+# --- 5. MySQL ----------------------------------------------------------------------------------
 Step 'Checking MySQL'
 if (-not (Test-Port 3306)) {
     $service = Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.Name -like 'MySQL*' } | Select-Object -First 1
@@ -233,10 +238,6 @@ if (-not (Test-Port 3306)) {
     if (-not (Test-Port 3306)) { Fail "The '$($service.Name)' service started but MySQL is not answering on port 3306." }
 }
 Write-Host '  MySQL is reachable.'
-
-# --- 5. Ports ------------------------------------------------------------------------------------
-Clear-Port 8081
-Clear-Port 8000
 
 # --- 6. Start both services ------------------------------------------------------------------------
 Step 'Starting the AI service and Spring'

@@ -48,6 +48,22 @@ function Get-Time($path) {
     return [datetime]::MinValue
 }
 
+# A runnable Spring Boot jar bundles its libraries under BOOT-INF/. A plain jar (left behind when
+# repackaging fails, e.g. because a running Spring held the old file open) cannot start.
+function Test-BootJar($path) {
+    if (-not (Test-Path $path)) { return $false }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $zip = $null
+    try {
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($path)
+        return [bool]($zip.Entries | Where-Object { $_.FullName -like 'BOOT-INF/lib/*' } | Select-Object -First 1)
+    } catch {
+        return $false
+    } finally {
+        if ($zip) { $zip.Dispose() }
+    }
+}
+
 function Invoke-Step($label, [scriptblock]$command) {
     Write-Host "  $label..."
     $started = Get-Date
@@ -85,10 +101,19 @@ if ($Force -or (Get-Newest $frontendSources) -gt (Get-Time $staticIndex)) {
 
 # --- 3. Spring Boot jar ---------------------------------------------------------------------
 $backendSources = (Join-Path $Backend 'src\main'), (Join-Path $Backend 'pom.xml')
-if ($Force -or $frontendBuilt -or (Get-Newest $backendSources) -gt (Get-Time $Jar)) {
+if ($Force -or $frontendBuilt -or (Get-Newest $backendSources) -gt (Get-Time $Jar) -or -not (Test-BootJar $Jar)) {
     Push-Location $Backend
-    try { Invoke-Step 'Spring jar build' { mvn.cmd -q -DskipTests package } } finally { Pop-Location }
-    if (-not (Test-Path $Jar)) { Fail "The build finished but $Jar is missing." }
+    try {
+        Write-Host '  Spring jar build...'
+        $started = Get-Date
+        & mvn.cmd -q -DskipTests package
+        if ($LASTEXITCODE -ne 0 -or -not (Test-BootJar $Jar)) {
+            # Never leave a half-built jar that looks up to date to the next run.
+            if (Test-Path $Jar) { Remove-Item -LiteralPath $Jar -Force }
+            Fail 'Spring jar build failed. See the output above (is another MusicMash still running?).'
+        }
+        Write-Host ("  Spring jar build done in {0:N0} s" -f ((Get-Date) - $started).TotalSeconds)
+    } finally { Pop-Location }
 } else {
     Write-Host '  Spring jar is up to date.'
 }
