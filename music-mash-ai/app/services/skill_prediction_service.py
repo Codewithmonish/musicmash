@@ -1,232 +1,164 @@
-from typing import Dict, Any
+"""
+Skill summary built only from measured metrics (app/services/audio/metrics.py).
+
+Every strength, weakness and drill below is triggered by a documented threshold on a
+measured number, and quotes that number. If a metric is None (not measurable), no
+statement is made about it. The skill LEVEL is a plain rule on overall_score; Phase 6
+replaces it with a trained model.
+"""
+from typing import Any, Optional
+
 from app.utils.logging import log
+
+# Skill level from overall_score (0–100): the first threshold the score reaches wins.
+LEVEL_THRESHOLDS: list[tuple[float, str]] = [
+    (85.0, "EXPERT"),
+    (70.0, "ADVANCED"),
+    (50.0, "INTERMEDIATE"),
+    (0.0, "BEGINNER"),
+]
+
+# Strength / weakness thresholds (units in the names).
+ACCURATE_CENTS = 10.0        # mean_abs_cents at or below → strength
+INACCURATE_CENTS = 20.0      # mean_abs_cents above → weakness
+TUNING_BIAS_CENTS = 10.0     # |mean_signed_cents| above → "tends sharp/flat"
+STEADY_NOTE_CENTS = 5.0      # pitch_stability_cents at or below → strength
+UNSTEADY_NOTE_CENTS = 15.0   # pitch_stability_cents above → weakness
+OFF_NOTE_CENTS = 25.0        # a single note whose |mean_cents| is above this is named
+MAX_NOTES_LISTED = 3         # at most this many off notes are listed (worst first)
+TIGHT_TIMING_MS = 15.0       # mean_abs_timing_error_ms at or below → strength
+LOOSE_TIMING_MS = 30.0       # mean_abs_timing_error_ms above → weakness
+TEMPO_DRIFT_BPM = 3.0        # |tempo_drift_bpm| above → "rushes/drags"
+EVEN_PULSE_CV = 0.02         # tempo_stability_cv at or below → strength
+UNEVEN_PULSE_CV = 0.05       # tempo_stability_cv above → weakness
+
+
+def predict_level(overall_score: Optional[float]) -> tuple[Optional[str], str]:
+    """Map overall_score to a level label; returns (level, explanation).
+
+    BEGINNER < 50 ≤ INTERMEDIATE < 70 ≤ ADVANCED < 85 ≤ EXPERT. None if there is no score.
+    """
+    if overall_score is None:
+        return None, "No level: neither pitch nor rhythm could be measured."
+    for threshold, level in LEVEL_THRESHOLDS:
+        if overall_score >= threshold:
+            return level, (
+                f"Rule-based: overall score {overall_score:.0f}/100 → {level} "
+                "(Beginner < 50, Intermediate 50–70, Advanced 70–85, Expert ≥ 85)."
+            )
+    raise ValueError(f"overall_score out of range: {overall_score}")
+
+
+def assess(metrics: dict[str, Any]) -> tuple[list[str], list[str], list[str]]:
+    """Return (strengths, weaknesses, improvement_areas) from measured metrics.
+
+    Each weakness adds one matching drill to improvement_areas.
+    """
+    strengths: list[str] = []
+    weaknesses: list[str] = []
+    drills: list[str] = []
+
+    def weak(text: str, drill: str) -> None:
+        weaknesses.append(text)
+        if drill not in drills:
+            drills.append(drill)
+
+    # Intonation
+    cents = metrics.get("mean_abs_cents")
+    if cents is not None:
+        if cents <= ACCURATE_CENTS:
+            strengths.append(f"Accurate intonation: notes average {cents:.0f} cents from the nearest semitone.")
+        elif cents > INACCURATE_CENTS:
+            weak(f"Intonation: notes average {cents:.0f} cents from the nearest semitone "
+                 f"(≤ {ACCURATE_CENTS:.0f} is accurate).",
+                 "Play slow long tones against a drone or tuner, holding each note until it settles.")
+
+    signed = metrics.get("mean_signed_cents")
+    if signed is not None and abs(signed) > TUNING_BIAS_CENTS:
+        direction = "sharp" if signed > 0 else "flat"
+        weak(f"Tends {direction}: on average {signed:+.0f} cents from the nearest semitone.",
+             "Check your tuning against A4 = 440 Hz, then practise landing held notes in the centre.")
+
+    # Individual notes: whole-take averages hide one badly tuned note among many good ones.
+    off_notes = sorted(
+        (n for n in metrics.get("notes") or [] if abs(n["mean_cents"]) > OFF_NOTE_CENTS),
+        key=lambda n: -abs(n["mean_cents"]),
+    )
+    if off_notes:
+        listed = ", ".join(
+            f"{n['note_name']} at {n['start']:.1f} s ({n['mean_cents']:+.0f}¢ "
+            f"{'sharp' if n['mean_cents'] > 0 else 'flat'})"
+            for n in off_notes[:MAX_NOTES_LISTED]
+        )
+        more = f" and {len(off_notes) - MAX_NOTES_LISTED} more" if len(off_notes) > MAX_NOTES_LISTED else ""
+        weak(f"Out-of-tune notes: {listed}{more}.",
+             "Loop the bars around the marked notes slowly against a drone, landing each one in the centre.")
+
+    stability = metrics.get("pitch_stability_cents")
+    if stability is not None:
+        if stability <= STEADY_NOTE_CENTS:
+            strengths.append(f"Steady held notes: pitch varies about ±{stability:.0f} cents within sustained notes.")
+        elif stability > UNSTEADY_NOTE_CENTS:
+            weak(f"Pitch wavers on held notes: about ±{stability:.0f} cents within sustained notes "
+                 "(vibrato also counts here).",
+                 "Hold each note for four slow beats while watching a tuner, keeping the needle still.")
+
+    # Timing
+    timing = metrics.get("mean_abs_timing_error_ms")
+    tempo = metrics.get("tempo_bpm")
+    if timing is not None:
+        if timing <= TIGHT_TIMING_MS:
+            strengths.append(f"Tight timing: onsets land {timing:.0f} ms from a steady beat grid on average.")
+        elif timing > LOOSE_TIMING_MS:
+            pct = metrics.get("pct_onsets_within_30ms")
+            detail = f"; {pct:.0f}% are within 30 ms" if pct is not None else ""
+            drill = "Practise with a metronome, starting about 10% below your performance tempo."
+            if tempo:
+                drill = (f"Practise with a metronome at {round(tempo * 0.9)} BPM (10% below your "
+                         f"{tempo:.0f} BPM), then build back up.")
+            weak(f"Loose timing: onsets land {timing:.0f} ms from a steady beat grid on average{detail}.", drill)
+
+    drift = metrics.get("tempo_drift_bpm")
+    if drift is not None and abs(drift) > TEMPO_DRIFT_BPM:
+        word, faster = ("Rushes", "faster") if drift > 0 else ("Drags", "slower")
+        weak(f"{word}: the second half is {abs(drift):.1f} BPM {faster} than the first.",
+             "Keep the metronome on for the whole piece and listen for it most in the closing section.")
+
+    cv = metrics.get("tempo_stability_cv")
+    if cv is not None:
+        if cv <= EVEN_PULSE_CV:
+            strengths.append(f"Even pulse: beat lengths vary by only {cv * 100:.1f}%.")
+        elif cv > UNEVEN_PULSE_CV:
+            weak(f"Uneven pulse: beat lengths vary by {cv * 100:.0f}% (coefficient of variation).",
+                 "Tap along with a metronome, then play the passage hearing only every second click.")
+
+    return strengths, weaknesses, drills
 
 
 class SkillPredictionService:
-    """Service for predicting user skill level based on performance analysis."""
-    
-    def __init__(self):
-        pass
-    
-    def predict_skill_level(self, audio_features: Dict[str, Any], 
-                           video_features: Dict[str, Any] = None) -> Dict[str, Any]:
+    """Builds the skill summary stored with each analysis."""
+
+    def predict_skill_level(self, metrics: dict[str, Any]) -> dict[str, Any]:
         """
-        Predict user's skill level based on performance features.
-        
+        Summarise measured metrics into scores, a level and feedback.
+
         Args:
-            audio_features: Extracted audio features
-            video_features: Optional extracted video features
-            
+            metrics: Flat metrics dict from AudioAnalysisService.analyze_audio
+
         Returns:
-            Dictionary containing skill prediction results
+            Dict with predicted_level, level_basis, intonation_score, rhythm_score, overall_score,
+            strengths, weaknesses and improvement_areas.
         """
-        try:
-            log.info("Starting skill level prediction")
-            
-            result = {
-                'predicted_level': 'INTERMEDIATE',
-                'confidence': 0.75,
-                'pitch_accuracy': 0.7,
-                'rhythm_accuracy': 0.75,
-                'timing_precision': 0.7,
-                'technique_score': 0.7,
-                'musicality_score': 0.7,
-                'percentile_rank': 50.0,
-                'strengths': [],
-                'weaknesses': [],
-                'improvement_areas': []
-            }
-            
-            # Analyze audio features for skill indicators
-            if audio_features:
-                audio_analysis = self._analyze_audio_skill(audio_features)
-                result.update(audio_analysis)
-            
-            # Analyze video features if available
-            if video_features:
-                video_analysis = self._analyze_video_skill(video_features)
-                result.update(video_analysis)
-            
-            # Calculate overall skill level
-            result['predicted_level'] = self._determine_skill_level(result)
-            result['confidence'] = self._calculate_confidence(result)
-            
-            # Generate strengths and weaknesses
-            result['strengths'] = self._identify_strengths(result)
-            result['weaknesses'] = self._identify_weaknesses(result)
-            result['improvement_areas'] = self._suggest_improvements(result)
-            
-            log.info(f"Skill prediction completed. Level: {result['predicted_level']}")
-            return result
-            
-        except Exception as e:
-            log.error(f"Skill prediction failed: {e}")
-            raise
-    
-    def _analyze_audio_skill(self, audio_features: Dict[str, Any]) -> Dict[str, Any]:
-        """Analyze audio features for skill indicators."""
-        try:
-            analysis = {}
-            
-            # Pitch accuracy based on spectral features
-            if 'spectral_centroid_mean' in audio_features:
-                centroid = audio_features['spectral_centroid_mean']
-                analysis['pitch_accuracy'] = min(1.0, centroid / 5000.0)
-            
-            # Rhythm accuracy based on tempo consistency
-            if 'tempo' in audio_features and 'tempo_confidence' in audio_features:
-                tempo_conf = audio_features['tempo_confidence']
-                analysis['rhythm_accuracy'] = min(1.0, tempo_conf)
-            
-            # Timing precision based on zero crossing rate
-            if 'zero_crossing_rate_mean' in audio_features:
-                zcr = audio_features['zero_crossing_rate_mean']
-                analysis['timing_precision'] = min(1.0, zcr * 10)
-            
-            # Technique score based on RMS energy
-            if 'rms_mean' in audio_features:
-                rms = audio_features['rms_mean']
-                analysis['technique_score'] = min(1.0, rms * 2)
-            
-            # Musicality based on chroma features
-            if 'chroma_mean' in audio_features:
-                chroma = audio_features['chroma_mean']
-                if chroma:
-                    analysis['musicality_score'] = 0.7  # Placeholder
-            
-            return analysis
-            
-        except Exception as e:
-            log.error(f"Error analyzing audio skill: {e}")
-            return {}
-    
-    def _analyze_video_skill(self, video_features: Dict[str, Any]) -> Dict[str, Any]:
-        """Analyze video features for skill indicators."""
-        try:
-            analysis = {}
-            
-            # Check for hand detections (instrument technique)
-            if 'hand_detections' in video_features:
-                hand_count = len(video_features['hand_detections'])
-                if hand_count > 0:
-                    analysis['technique_score'] = min(1.0, analysis.get('technique_score', 0) + 0.2)
-            
-            # Check for body pose (posture and technique)
-            if 'body_poses' in video_features:
-                pose_count = len(video_features['body_poses'])
-                if pose_count > 0:
-                    analysis['technique_score'] = min(1.0, analysis.get('technique_score', 0) + 0.1)
-            
-            return analysis
-            
-        except Exception as e:
-            log.error(f"Error analyzing video skill: {e}")
-            return {}
-    
-    def _determine_skill_level(self, result: Dict[str, Any]) -> str:
-        """Determine overall skill level based on scores."""
-        try:
-            # Calculate average score
-            scores = [
-                result.get('pitch_accuracy', 0.5),
-                result.get('rhythm_accuracy', 0.5),
-                result.get('timing_precision', 0.5),
-                result.get('technique_score', 0.5),
-                result.get('musicality_score', 0.5)
-            ]
-            avg_score = sum(scores) / len(scores)
-            
-            # Determine level based on average
-            if avg_score < 0.3:
-                return 'BEGINNER'
-            elif avg_score < 0.5:
-                return 'INTERMEDIATE'
-            elif avg_score < 0.7:
-                return 'ADVANCED'
-            elif avg_score < 0.9:
-                return 'EXPERT'
-            else:
-                return 'MASTER'
-                
-        except Exception as e:
-            log.error(f"Error determining skill level: {e}")
-            return 'INTERMEDIATE'
-    
-    def _calculate_confidence(self, result: Dict[str, Any]) -> float:
-        """Calculate confidence in the prediction."""
-        try:
-            # Confidence based on consistency of scores
-            scores = [
-                result.get('pitch_accuracy', 0.5),
-                result.get('rhythm_accuracy', 0.5),
-                result.get('timing_precision', 0.5),
-                result.get('technique_score', 0.5),
-                result.get('musicality_score', 0.5)
-            ]
-            
-            if len(scores) == 0:
-                return 0.5
-            
-            # Calculate standard deviation
-            mean = sum(scores) / len(scores)
-            variance = sum((x - mean) ** 2 for x in scores) / len(scores)
-            std_dev = variance ** 0.5
-            
-            # Lower standard deviation = higher confidence
-            confidence = 1.0 - min(1.0, std_dev)
-            return round(confidence, 2)
-            
-        except Exception as e:
-            log.error(f"Error calculating confidence: {e}")
-            return 0.5
-    
-    def _identify_strengths(self, result: Dict[str, Any]) -> list:
-        """Identify user's strengths based on scores."""
-        strengths = []
-        
-        if result.get('pitch_accuracy', 0) > 0.7:
-            strengths.append('Strong pitch accuracy')
-        if result.get('rhythm_accuracy', 0) > 0.7:
-            strengths.append('Good rhythmic consistency')
-        if result.get('timing_precision', 0) > 0.7:
-            strengths.append('Precise timing')
-        if result.get('technique_score', 0) > 0.7:
-            strengths.append('Solid technique')
-        if result.get('musicality_score', 0) > 0.7:
-            strengths.append('Good musical expression')
-        
-        return strengths if strengths else ['Consistent performance']
-    
-    def _identify_weaknesses(self, result: Dict[str, Any]) -> list:
-        """Identify user's weaknesses based on scores."""
-        weaknesses = []
-        
-        if result.get('pitch_accuracy', 1) < 0.5:
-            weaknesses.append('Pitch accuracy needs improvement')
-        if result.get('rhythm_accuracy', 1) < 0.5:
-            weaknesses.append('Rhythm consistency needs work')
-        if result.get('timing_precision', 1) < 0.5:
-            weaknesses.append('Timing precision needs attention')
-        if result.get('technique_score', 1) < 0.5:
-            weaknesses.append('Technique needs development')
-        if result.get('musicality_score', 1) < 0.5:
-            weaknesses.append('Musical expression could be enhanced')
-        
-        return weaknesses if weaknesses else ['Continue practicing to improve']
-    
-    def _suggest_improvements(self, result: Dict[str, Any]) -> list:
-        """Suggest areas for improvement."""
-        improvements = []
-        
-        if result.get('pitch_accuracy', 1) < 0.6:
-            improvements.append('Practice scales and intervals')
-        if result.get('rhythm_accuracy', 1) < 0.6:
-            improvements.append('Use metronome for rhythm practice')
-        if result.get('timing_precision', 1) < 0.6:
-            improvements.append('Practice with backing tracks')
-        if result.get('technique_score', 1) < 0.6:
-            improvements.append('Work on technical exercises')
-        if result.get('musicality_score', 1) < 0.6:
-            improvements.append('Study dynamics and phrasing')
-        
-        return improvements if improvements else ['Continue current practice routine']
+        level, basis = predict_level(metrics.get("overall_score"))
+        strengths, weaknesses, drills = assess(metrics)
+        log.info(f"Skill summary completed. Level: {level}")
+        return {
+            "predicted_level": level,
+            "level_basis": basis,
+            "intonation_score": metrics.get("intonation_score"),
+            "rhythm_score": metrics.get("rhythm_score"),
+            "overall_score": metrics.get("overall_score"),
+            "strengths": strengths,
+            "weaknesses": weaknesses,
+            "improvement_areas": drills,
+        }

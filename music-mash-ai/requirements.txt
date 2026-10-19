@@ -1,34 +1,35 @@
-# FastAPI and Server
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-pydantic==2.5.3
-pydantic-settings==2.1.0
+# Versions pinned to what the test suite runs on (Python 3.14, Windows).
 
-# Database
-sqlalchemy==2.0.25
-alembic==1.13.1
-psycopg2-binary==2.9.9
+# FastAPI and Server
+fastapi==0.139.2
+uvicorn[standard]==0.49.0
+pydantic==2.14.1
+pydantic-settings==2.14.1
+
+# Database (SQLite through SQLAlchemy)
+sqlalchemy==2.0.51
 
 # Audio Processing
-librosa
-numpy
-scipy
-soundfile
+librosa==0.11.0
+numba==0.66.0
+numpy==2.4.6
+scipy==1.18.0
+soundfile==0.14.0
 
-# Video Processing
-opencv-python-headless
-mediapipe
+# Video Processing (frame and metadata extraction only)
+opencv-python-headless==5.0.0.93
 
 # Utilities
-python-multipart==0.0.6
-aiofiles==23.2.1
-python-dotenv==1.0.0
-httpx==0.26.0
+python-multipart==0.0.32
+python-dotenv==1.2.2
+httpx==0.28.1
 
 # Logging
-loguru==0.7.2
+loguru==0.7.3
 
-# Testing
-pytest==7.4.4
-pytest-asyncio==0.23.3
-httpx==0.26.0
+# AI coach (Phase 4): local knowledge index + LLM
+# sentence-transformers pulls in torch (CPU wheel) and scikit-learn.
+chromadb==1.5.9
+sentence-transformers==6.1.0
+langchain-core==1.6.10
+langchain-google-genai==4.4.2

@@ -4,9 +4,9 @@ from app.schemas.analysis import (
     AnalysisStatusResponse,
     AnalysisStatus,
     AudioFeaturesResponse,
-    AuthenticityResultResponse,
     SkillPredictionResponse,
     AnalysisResultResponse,
+    PitchContourResponse,
 )
 from app.schemas.recommendation import (
     PracticeRecommendationRequest,
@@ -19,9 +19,9 @@ __all__ = [
     "AnalysisStatusResponse",
     "AnalysisStatus",
     "AudioFeaturesResponse",
-    "AuthenticityResultResponse",
     "SkillPredictionResponse",
     "AnalysisResultResponse",
+    "PitchContourResponse",
     "PracticeRecommendationRequest",
     "PracticeRecommendationResponse",
 ]

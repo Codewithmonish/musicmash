@@ -1,233 +1,142 @@
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { FiPlay, FiCheck, FiX, FiMusic, FiStar, FiMessageSquare, FiShield, FiRadio } from 'react-icons/fi'
-import { useNavigate } from 'react-router-dom'
-import toast from 'react-hot-toast'
-import Navbar from '../../components/layout/Navbar'
-import AmbientBackground from '../../components/ui/AmbientBackground'
-import EqualizerBars from '../../components/ui/EqualizerBars'
-import Card from '../../components/ui/Card'
+import { useEffect, useState } from 'react'
+import PageShell from '../../components/layout/PageShell'
+import PageBanner from '../../components/layout/PageBanner'
 import Button from '../../components/ui/Button'
+import Badge from '../../components/ui/Badge'
 import Input from '../../components/ui/Input'
-import api from '../../services/api'
+import EmptyState from '../../components/ui/EmptyState'
+import CoverImage from '../../components/ui/CoverImage'
+import Skeleton from '../../components/ui/Skeleton'
+import { notify } from '../../components/ui/Toast'
+import { IMAGES, instrumentImage } from '../../utils/images'
+import { formatDate, genreLabel, instrumentLabel, titleCase } from '../../utils/music'
+import { cn } from '../../utils/cn'
+import api, { mediaUrl } from '../../services/api'
 
-const JudgeDashboard = () => {
-  const [performances, setPerformances] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [evaluatingId, setEvaluatingId] = useState(null)
-  
-  const [evaluationForm, setEvaluationForm] = useState({
-    pitchScore: 85,
-    rhythmScore: 88,
-    techniqueScore: 90,
-    creativityScore: 85,
-    overallScore: 87,
-    feedback: ''
-  })
+/** The six criteria the backend stores. Each is a whole number 0–100 entered by the judge. */
+const CRITERIA = [
+  ['pitchScore', 'Pitch'], ['rhythmScore', 'Rhythm'], ['timingScore', 'Timing'],
+  ['techniqueScore', 'Technique'], ['creativityScore', 'Creativity'], ['expressionScore', 'Expression'],
+]
+const EMPTY_FORM = { ...Object.fromEntries(CRITERIA.map(([key]) => [key, ''])), feedback: '' }
 
-  useEffect(() => {
-    fetchPendingPerformances()
-  }, [])
+const isScore = (value) => value !== '' && Number.isInteger(Number(value)) && Number(value) >= 0 && Number(value) <= 100
 
-  const fetchPendingPerformances = async () => {
-    setLoading(true)
+/** Same rule as EvaluationService.calculateOverallScore: integer mean of the six scores. */
+const overallOf = (form) => (CRITERIA.every(([key]) => isScore(form[key]))
+  ? Math.floor(CRITERIA.reduce((sum, [key]) => sum + Number(form[key]), 0) / CRITERIA.length) : null)
+
+const EvaluationForm = ({ performance, onDone, onCancel }) => {
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [saving, setSaving] = useState(false)
+  const overall = overallOf(form)
+  const valid = overall !== null && form.feedback.trim()
+
+  const submit = async (event) => {
+    event.preventDefault()
+    setSaving(true)
     try {
-      const response = await api.get('/api/performances')
-      setPerformances(response.data || [])
-    } catch (error) {
-      console.error('Failed to fetch performances:', error)
+      const body = { ...Object.fromEntries(CRITERIA.map(([key]) => [key, Number(form[key])])), feedback: form.feedback.trim() }
+      await api.post('/judge/evaluations', body, { params: { performanceId: performance.id } })
+      notify.success('Evaluation saved', `${performance.title} scored ${overall}/100.`)
+      onDone(performance.id)
+    } catch (e) {
+      notify.error('Could not save the evaluation', e.response?.data?.message || 'Please try again.')
     } finally {
-      setLoading(false)
-    }
-  }
-
-  const startEvaluation = (perf) => {
-    setEvaluatingId(perf.id)
-    setEvaluationForm({
-      pitchScore: 85,
-      rhythmScore: 88,
-      techniqueScore: 90,
-      creativityScore: 85,
-      overallScore: 87,
-      feedback: ''
-    })
-  }
-
-  const submitEvaluation = async (performanceId, action) => {
-    try {
-      if (action === 'approve') {
-        await api.post(`/api/performances/${performanceId}/submit`, evaluationForm)
-        toast.success('Performance evaluated and approved!')
-      } else {
-        toast.success('Performance review recorded.')
-      }
-      setEvaluatingId(null)
-      fetchPendingPerformances()
-    } catch (error) {
-      console.error(error)
-      toast.error('Failed to save evaluation.')
+      setSaving(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#06060A] text-foreground pt-24 pb-20 px-4 relative overflow-hidden">
-      <AmbientBackground />
-      <Navbar />
+    <form onSubmit={submit} className="mt-6 space-y-4 border-t border-obsidian pt-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        {CRITERIA.map(([key, label]) => (
+          <Input key={key} label={label} type="number" inputMode="numeric" min={0} max={100} step={1} required
+            placeholder="0–100" value={form[key]} error={form[key] !== '' && !isScore(form[key]) ? 'Whole number 0–100' : undefined}
+            onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} />
+        ))}
+      </div>
+      <Input as="textarea" rows={3} label="Feedback for the musician" required value={form.feedback}
+        onChange={(e) => setForm((f) => ({ ...f, feedback: e.target.value }))} />
+      <div className="flex flex-wrap items-center gap-4">
+        <Button type="submit" disabled={!valid || saving}>Submit evaluation</Button>
+        <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+        <p className="text-body-sm text-fog">
+          Overall: {overall === null ? 'fill in all six scores' : <span className="font-semibold text-white">{overall}/100</span>}
+          <span className="text-caption"> (mean of the six, rounded down)</span>
+        </p>
+      </div>
+    </form>
+  )
+}
 
-      <div className="max-w-7xl mx-auto relative z-10">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <span className="px-3 py-1 rounded-full bg-secondary/15 border border-secondary/30 text-secondary text-xs font-mono font-semibold uppercase tracking-wider flex items-center gap-1.5">
-              <FiShield className="animate-pulse" /> EXPERT JUDGE ARENA
-            </span>
-          </div>
-          <h1 className="font-display text-3xl sm:text-5xl font-bold text-white tracking-tight">
-            Judge <span className="gradient-text">Evaluation Studio</span>
-          </h1>
-          <p className="text-muted text-xs sm:text-sm mt-1">Review student & competitor performance submissions with certified criteria scoring.</p>
-        </motion.div>
+const SubmissionRow = ({ performance, open, onOpen, onClose, onDone }) => {
+  const cover = instrumentImage(performance.instrument)
+  const audio = mediaUrl(performance.audioUrl)
+  return (
+    <li className={cn('bg-graphite p-4 shadow-subtle sm:p-6', open && 'shadow-[inset_0_0_0_1px_#666666]')}>
+      <div className="grid gap-4 sm:grid-cols-[96px_1fr_auto] sm:items-center">
+        <CoverImage src={cover?.src} alt={cover?.alt ?? ''} seed={`performance-${performance.id}`} className="w-24" />
+        <div className="min-w-0">
+          <p className="truncate text-body-sm font-semibold text-white">{performance.title}</p>
+          <p className="text-body-sm text-fog">
+            {performance.username} · {instrumentLabel(performance.instrument)}
+            {performance.category && ` · ${genreLabel(performance.category)}`}
+            {performance.difficulty && ` · ${titleCase(performance.difficulty)}`}
+          </p>
+          <p className="text-caption text-fog">Submitted {formatDate(performance.submittedAt)}</p>
+        </div>
+        {!open && <Button size="sm" onClick={onOpen}>Evaluate</Button>}
+      </div>
+      {performance.description && <p className="mt-4 text-body-sm text-silver">{performance.description}</p>}
+      {audio ? (
+        <audio controls preload="none" src={audio} className="mt-4 w-full" aria-label={`Recording of ${performance.title}`} />
+      ) : (
+        <p className="mt-4 text-caption text-fog">No audio file is attached to this submission.</p>
+      )}
+      {open && <EvaluationForm performance={performance} onDone={onDone} onCancel={onClose} />}
+    </li>
+  )
+}
 
-        {performances.length === 0 ? (
-          /* Empty State - REAL DATA ONLY */
-          <Card hover={false} className="text-center py-16 px-4 border-white/10">
-            <FiMusic className="text-4xl text-primary-light mx-auto mb-4" />
-            <h3 className="font-display text-xl font-bold text-white mb-2">No Submissions Pending Review</h3>
-            <p className="text-muted text-sm max-w-md mx-auto">
-              When musicians submit performance tracks from the Studio, they will appear here for judge evaluation and scoring.
-            </p>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            {performances.map((perf) => (
-              <Card key={perf.id} hover={false} className="border-white/10">
-                {evaluatingId === perf.id ? (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between pb-4 border-b border-white/10">
-                      <div>
-                        <h3 className="font-display font-bold text-xl text-white">{perf.title}</h3>
-                        <p className="text-xs text-muted">Evaluating Track • {perf.instrument}</p>
-                      </div>
-                      <EqualizerBars count={5} className="h-6 gap-1" />
-                    </div>
+/** Submissions waiting for a human judge. Scores here are the judge's own, not AI output. */
+const JudgeDashboard = () => {
+  const [performances, setPerformances] = useState(null)
+  const [openId, setOpenId] = useState(null)
 
-                    {/* Criteria Sliders */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <div className="flex justify-between text-xs font-mono text-muted mb-1">
-                          <span>Pitch Accuracy</span>
-                          <span className="text-accent font-bold">{evaluationForm.pitchScore}/100</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={evaluationForm.pitchScore}
-                          onChange={(e) => setEvaluationForm({ ...evaluationForm, pitchScore: parseInt(e.target.value) })}
-                          className="w-full accent-accent"
-                        />
-                      </div>
+  useEffect(() => {
+    api.get('/judge/performances').then((r) => setPerformances(r.data)).catch(() => setPerformances([]))
+  }, [])
 
-                      <div>
-                        <div className="flex justify-between text-xs font-mono text-muted mb-1">
-                          <span>Rhythm & Timing</span>
-                          <span className="text-primary-light font-bold">{evaluationForm.rhythmScore}/100</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={evaluationForm.rhythmScore}
-                          onChange={(e) => setEvaluationForm({ ...evaluationForm, rhythmScore: parseInt(e.target.value) })}
-                          className="w-full accent-primary"
-                        />
-                      </div>
+  const done = (id) => {
+    setPerformances((list) => list.filter((p) => p.id !== id))
+    setOpenId(null)
+  }
 
-                      <div>
-                        <div className="flex justify-between text-xs font-mono text-muted mb-1">
-                          <span>Technique & Articulation</span>
-                          <span className="text-secondary font-bold">{evaluationForm.techniqueScore}/100</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={evaluationForm.techniqueScore}
-                          onChange={(e) => setEvaluationForm({ ...evaluationForm, techniqueScore: parseInt(e.target.value) })}
-                          className="w-full accent-secondary"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between text-xs font-mono text-muted mb-1">
-                          <span>Overall Musical Expression</span>
-                          <span className="text-warning font-bold">{evaluationForm.overallScore}/100</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={evaluationForm.overallScore}
-                          onChange={(e) => setEvaluationForm({ ...evaluationForm, overallScore: parseInt(e.target.value) })}
-                          className="w-full accent-warning"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-2">
-                        Judge Constructive Feedback
-                      </label>
-                      <textarea
-                        value={evaluationForm.feedback}
-                        onChange={(e) => setEvaluationForm({ ...evaluationForm, feedback: e.target.value })}
-                        placeholder="Provide detailed feedback on tone, timing, posture, and technical areas..."
-                        className="input-field w-full h-28 text-xs resize-none"
-                      />
-                    </div>
-
-                    <div className="flex gap-4 pt-4 border-t border-white/10">
-                      <Button onClick={() => setEvaluatingId(null)} variant="secondary" className="flex-1 uppercase text-xs">
-                        Cancel
-                      </Button>
-                      <Button onClick={() => submitEvaluation(perf.id, 'approve')} variant="accent" className="flex-1 uppercase text-xs font-bold">
-                        Publish Judge Evaluation
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30 flex items-center justify-center text-accent text-2xl">
-                        <FiMusic />
-                      </div>
-                      <div>
-                        <h3 className="font-display font-bold text-lg text-white">{perf.title}</h3>
-                        <div className="text-xs text-muted flex items-center gap-2 mt-1">
-                          <span>🎹 {perf.instrument}</span>
-                          <span>• Category: {perf.category || 'General'}</span>
-                          <span>• Status: {perf.status}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <Button onClick={() => startEvaluation(perf)} variant="accent" icon={FiStar} className="uppercase text-xs font-bold">
-                        Evaluate Submission
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </Card>
+  return (
+    <PageShell>
+      <PageBanner image={IMAGES.scenes.competitions} title="Judging"
+        description="Listen to each submission and score it yourself. Your scores and feedback go straight to the musician." />
+      <div className="page py-10">
+        <div className="mb-6 flex items-center gap-3">
+          <h2 className="text-subheading font-semibold text-white">Waiting for review</h2>
+          {performances && <Badge tone="muted">{performances.length}</Badge>}
+        </div>
+        {performances === null ? (
+          <div className="space-y-4">{Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-32" />)}</div>
+        ) : performances.length ? (
+          <ul className="space-y-4">
+            {performances.map((p) => (
+              <SubmissionRow key={p.id} performance={p} open={openId === p.id}
+                onOpen={() => setOpenId(p.id)} onClose={() => setOpenId(null)} onDone={done} />
             ))}
-          </div>
+          </ul>
+        ) : (
+          <EmptyState image={IMAGES.emptyStates.performances?.src} title="Nothing to judge"
+            body="Submitted performances appear here until a judge has scored them." />
         )}
       </div>
-    </div>
+    </PageShell>
   )
 }
 

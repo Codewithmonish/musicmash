@@ -89,39 +89,6 @@ class VideoPreprocessor:
             log.error(f"Error normalizing frame: {e}")
             raise
     
-    def detect_faces(self, frame: np.ndarray) -> List[Dict[str, Any]]:
-        """Detect faces in frame (placeholder for MediaPipe integration)."""
-        try:
-            # Placeholder for future MediaPipe Face Detection implementation
-            # For now, return empty list
-            log.debug("Face detection placeholder - returning empty list")
-            return []
-        except Exception as e:
-            log.error(f"Error detecting faces: {e}")
-            return []
-    
-    def detect_hands(self, frame: np.ndarray) -> List[Dict[str, Any]]:
-        """Detect hands in frame (placeholder for MediaPipe integration)."""
-        try:
-            # Placeholder for future MediaPipe Hands implementation
-            # For now, return empty list
-            log.debug("Hand detection placeholder - returning empty list")
-            return []
-        except Exception as e:
-            log.error(f"Error detecting hands: {e}")
-            return []
-    
-    def detect_body_pose(self, frame: np.ndarray) -> Dict[str, Any]:
-        """Detect body pose in frame (placeholder for MediaPipe integration)."""
-        try:
-            # Placeholder for future MediaPipe Pose implementation
-            # For now, return empty dict
-            log.debug("Body pose detection placeholder - returning empty dict")
-            return {}
-        except Exception as e:
-            log.error(f"Error detecting body pose: {e}")
-            return {}
-    
     def extract_video_metadata(self, cap: cv2.VideoCapture) -> Dict[str, Any]:
         """Extract metadata from video."""
         try:

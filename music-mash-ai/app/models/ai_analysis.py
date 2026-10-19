@@ -16,11 +16,12 @@ class AIAnalysis(Base):
     __tablename__ = "ai_analyses"
 
     id = Column(Integer, primary_key=True, index=True)
-    performance_id = Column(Integer, nullable=False, index=True)
+    performance_id = Column(Integer, nullable=True, index=True)  # null for practice attempts
     user_id = Column(Integer, nullable=False, index=True)
     
-    audio_url = Column(String(500), nullable=True)
-    video_url = Column(String(500), nullable=True)
+    # Plain file names inside the shared upload directory (app/core/uploads.py)
+    audio_file = Column(String(255), nullable=True)
+    video_file = Column(String(255), nullable=True)
     
     instrument = Column(String(50), nullable=True)
     category = Column(String(50), nullable=True)
@@ -37,5 +38,4 @@ class AIAnalysis(Base):
     
     # Relationships
     audio_features = relationship("AudioFeatures", back_populates="analysis", uselist=False)
-    authenticity_result = relationship("AuthenticityResult", back_populates="analysis", uselist=False)
     skill_prediction = relationship("SkillPrediction", back_populates="analysis", uselist=False)

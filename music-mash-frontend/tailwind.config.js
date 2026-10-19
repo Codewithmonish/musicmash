@@ -1,105 +1,74 @@
-/** @type {import('tailwindcss').Config} */
+/**
+ * MusicMash design tokens (docs/MUSICMASH_DESIGN_SYSTEM.md), derived from docs/DESIGN.md.
+ *
+ * The theme REPLACES Tailwind's defaults for colours, radii, shadows and background images
+ * instead of extending them, so off-system styles (purple accents, rounded-2xl, glow shadows,
+ * gradients) cannot creep back in: those classes simply do not exist.
+ *
+ * Spacing keeps Tailwind's 4px scale, which already matches every DESIGN.md spacing token:
+ * 1=4px 2=8px 3=12px 4=16px 5=20px 6=24px 8=32px 10=40px 12=48px 16=64px 24=96px; 45=180px added.
+ */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
-    extend: {
-      colors: {
-        primary: {
-          DEFAULT: '#8B5CF6', // Futuristic Electric Purple
-          light: '#A78BFA',
-          dark: '#6D28D9',
-          foreground: '#FFFFFF',
-        },
-        secondary: {
-          DEFAULT: '#EC4899', // Magenta / Electric Pink
-          light: '#F472B6',
-          dark: '#BE185D',
-          foreground: '#FFFFFF',
-        },
-        accent: {
-          DEFAULT: '#06B6D4', // Vibrant Cyber Cyan
-          light: '#22D3EE',
-          dark: '#0891B2',
-          foreground: '#07070D',
-        },
-        background: '#06060A',
-        foreground: '#F8FAFC',
-        surface: {
-          DEFAULT: '#0F101A',
-          border: '#1E2035',
-          hover: '#17192A',
-        },
-        card: {
-          DEFAULT: 'rgba(15, 16, 26, 0.75)',
-          foreground: '#F8FAFC',
-          border: 'rgba(139, 92, 246, 0.15)',
-        },
-        popover: {
-          DEFAULT: '#0F101A',
-          foreground: '#F8FAFC',
-        },
-        text: '#F8FAFC',
-        muted: {
-          DEFAULT: '#94A3B8',
-          foreground: '#64748B',
-        },
-        success: '#10B981',
-        warning: '#F59E0B',
-        error: '#EF4444',
-        border: 'rgba(255, 255, 255, 0.08)',
-        input: 'rgba(255, 255, 255, 0.05)',
-        ring: '#8B5CF6',
-      },
-      fontFamily: {
-        sans: ['Inter', 'Poppins', 'sans-serif'],
-        display: ['Space Grotesk', 'sans-serif'],
-      },
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-        'cyber-glass': 'linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%)',
-        'neon-purple-glow': 'radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, rgba(6, 6, 10, 0) 70%)',
-        'neon-cyan-glow': 'radial-gradient(circle, rgba(6, 182, 212, 0.2) 0%, rgba(6, 6, 10, 0) 70%)',
-      },
-      boxShadow: {
-        'glow-purple': '0 0 25px -5px rgba(139, 92, 246, 0.4)',
-        'glow-cyan': '0 0 25px -5px rgba(6, 182, 212, 0.4)',
-        'glow-magenta': '0 0 25px -5px rgba(236, 72, 153, 0.4)',
-        'glass-card': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-      },
-      animation: {
-        'float': 'float 6s ease-in-out infinite',
-        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'glow': 'glow 3s ease-in-out infinite alternate',
-        'equalizer': 'equalizer 1.2s ease-in-out infinite alternate',
-        'wave': 'wave 2s linear infinite',
-      },
-      keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-12px)' },
-        },
-        glow: {
-          '0%': { boxShadow: '0 0 10px rgba(139, 92, 246, 0.3)' },
-          '100%': { boxShadow: '0 0 25px rgba(139, 92, 246, 0.7), 0 0 50px rgba(6, 182, 212, 0.4)' },
-        },
-        equalizer: {
-          '0%': { height: '15%' },
-          '100%': { height: '100%' },
-        },
-        wave: {
-          '0%': { transform: 'translateX(0)' },
-          '100%': { transform: 'translateX(-50%)' },
-        },
-      },
-      backdropBlur: {
-        xs: '2px',
-        xl: '20px',
+    colors: {
+      transparent: 'transparent',
+      current: 'currentColor',
+      black: '#000000',
+      obsidian: '#121212',     // page background (surface 0)
+      graphite: '#303030',     // inputs, panels (surface 1)
+      'mid-gray': '#666666',   // hover tier, dividers (surface 2)
+      fog: '#999999',          // muted text, ghost buttons
+      silver: '#cccccc',       // hairlines on light surfaces
+      bone: '#f2f2f2',         // the single light band
+      white: '#ffffff',        // primary text and primary buttons
+      signal: '#699fff',       // links, focus accents, the live dot. Never a button fill.
+      // Status colours are DATA (pitch-chart bands, problem sections), not decoration.
+      status: {
+        good: '#0ca30c',
+        warning: '#fab219',
+        critical: '#d03b3b',
       },
     },
+    fontFamily: {
+      sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+      mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+    },
+    fontSize: {
+      caption: ['12px', { lineHeight: '1.41' }],
+      'body-sm': ['14px', { lineHeight: '1.43' }],
+      body: ['17px', { lineHeight: '1.41' }],
+      subheading: ['22px', { lineHeight: '1.27' }],
+      'heading-sm': ['28px', { lineHeight: '1.29' }],
+      heading: ['36px', { lineHeight: '1.33' }],
+      display: ['60px', { lineHeight: '1' }],
+    },
+    fontWeight: {
+      thin: '100',      // display (60px) only
+      normal: '400',
+      semibold: '600',
+      bold: '700',      // button labels, strong CTAs
+    },
+    borderRadius: {
+      none: '0px',      // cards
+      DEFAULT: '4px',   // buttons, inputs, badges, images
+      full: '9999px',   // only for dots and avatars, never for buttons
+    },
+    boxShadow: {
+      none: 'none',
+      subtle: 'rgba(18, 18, 18, 0.1) 0px 0px 0px 1px inset',
+    },
+    backgroundImage: {},  // no gradients; the hero scrim is a dedicated CSS class
+    extend: {
+      spacing: { 45: '180px' },
+      maxWidth: { page: '1200px' },
+      aspectRatio: { cover: '1 / 1' },
+      transitionTimingFunction: { out: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+    },
+  },
+  corePlugins: {
+    backdropBlur: false,      // no glassmorphism
+    backdropFilter: false,
   },
   plugins: [],
 }

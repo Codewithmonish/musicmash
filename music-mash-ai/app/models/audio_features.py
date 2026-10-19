@@ -1,50 +1,59 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database.database import Base
 
 
 class AudioFeatures(Base):
+    """Measured metrics for one analysis. Column names match the keys produced by
+    app/services/audio/metrics.py (PerformanceMetrics.to_flat_dict); see docs/METRICS.md.
+    Any metric column may be NULL, with the reason in ``unavailable_reasons``."""
+
     __tablename__ = "audio_features"
 
     id = Column(Integer, primary_key=True, index=True)
     analysis_id = Column(Integer, ForeignKey("ai_analyses.id"), nullable=False, unique=True)
-    
-    # Basic features
-    duration = Column(Float, nullable=True)
+
+    # Recording
+    duration_s = Column(Float, nullable=True)
     sample_rate = Column(Integer, nullable=True)
-    
-    # Spectral features
-    spectral_centroid_mean = Column(Float, nullable=True)
-    spectral_centroid_std = Column(Float, nullable=True)
-    spectral_bandwidth_mean = Column(Float, nullable=True)
-    spectral_bandwidth_std = Column(Float, nullable=True)
-    spectral_rolloff_mean = Column(Float, nullable=True)
-    spectral_rolloff_std = Column(Float, nullable=True)
-    
-    # MFCC features
-    mfcc_mean = Column(String(1000), nullable=True)  # JSON string
-    mfcc_std = Column(String(1000), nullable=True)  # JSON string
-    
-    # Chroma features
-    chroma_mean = Column(String(1000), nullable=True)  # JSON string
-    chroma_std = Column(String(1000), nullable=True)  # JSON string
-    
-    # Tempo and rhythm
-    tempo = Column(Float, nullable=True)
-    tempo_confidence = Column(Float, nullable=True)
-    
-    # Energy features
-    rms_mean = Column(Float, nullable=True)
-    rms_std = Column(Float, nullable=True)
-    zero_crossing_rate_mean = Column(Float, nullable=True)
-    zero_crossing_rate_std = Column(Float, nullable=True)
-    
-    # Tonality
-    key = Column(String(10), nullable=True)
-    scale = Column(String(10), nullable=True)
-    
+    pitch_fmin_hz = Column(Float, nullable=True)
+    pitch_fmax_hz = Column(Float, nullable=True)
+
+    # Pitch
+    voiced_ratio = Column(Float, nullable=True)
+    mean_abs_cents = Column(Float, nullable=True)
+    median_abs_cents = Column(Float, nullable=True)
+    mean_signed_cents = Column(Float, nullable=True)
+    pct_frames_within_25_cents = Column(Float, nullable=True)
+    pitch_stability_cents = Column(Float, nullable=True)
+    note_count = Column(Integer, nullable=True)
+    notes = Column(Text, nullable=True)  # JSON list of {start, end, midi, note_name, mean_cents, cents_std}
+    # JSON list of {t, midi_float, cents_off, voiced}, downsampled to <= 1500 points.
+    # Served by /result/{id}/pitch-contour, not by /result (it is large).
+    pitch_contour = Column(Text, nullable=True)
+
+    # Rhythm
+    onset_count = Column(Integer, nullable=True)
+    tempo_bpm = Column(Float, nullable=True)
+    tempo_stability_cv = Column(Float, nullable=True)
+    tempo_drift_bpm = Column(Float, nullable=True)
+    mean_abs_timing_error_ms = Column(Float, nullable=True)
+    pct_onsets_within_30ms = Column(Float, nullable=True)
+
+    # Dynamics (descriptive only)
+    mean_rms_dbfs = Column(Float, nullable=True)
+    dynamic_range_db = Column(Float, nullable=True)
+
+    # Scores (0-100)
+    intonation_score = Column(Float, nullable=True)
+    rhythm_score = Column(Float, nullable=True)
+    overall_score = Column(Float, nullable=True)
+
+    # JSON object {metric_name: reason} for every metric that is NULL
+    unavailable_reasons = Column(Text, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    
+
     # Relationship
     analysis = relationship("AIAnalysis", back_populates="audio_features")

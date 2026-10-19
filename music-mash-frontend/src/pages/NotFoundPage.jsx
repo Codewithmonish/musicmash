@@ -1,39 +1,25 @@
-import { motion } from 'framer-motion'
-import { Link } from 'react-router-dom'
-import { FiHome, FiMusic } from 'react-icons/fi'
-import Navbar from '../components/layout/Navbar'
+import PageShell from '../components/layout/PageShell'
+import Button from '../components/ui/Button'
+import { IMAGES } from '../utils/images'
 
 const NotFoundPage = () => {
+  const image = IMAGES.scenes.notFound
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <Navbar />
-      
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center"
-      >
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="w-32 h-32 mx-auto mb-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center"
-        >
-          <FiMusic className="text-white text-5xl" />
-        </motion.div>
-        
-        <h1 className="font-display text-6xl font-bold mb-4">
-          <span className="gradient-text">404</span>
-        </h1>
-        <p className="text-xl text-muted mb-8">
-          Oops! This page doesn't exist
-        </p>
-        
-        <Link to="/" className="btn-primary inline-flex items-center gap-2">
-          <FiHome />
-          Back to Home
-        </Link>
-      </motion.div>
-    </div>
+    <PageShell>
+      <div className="page grid min-h-[calc(100vh-4rem)] items-center gap-10 py-10 lg:grid-cols-2">
+        <img src={image?.src} alt={image?.alt ?? ''} width="1000" height="1250"
+          className="aspect-[4/3] w-full rounded object-cover lg:aspect-[4/5]" />
+        <div>
+          <p className="text-display font-thin text-white">404</p>
+          <h1 className="mt-4 text-heading-sm font-semibold text-white">This page went off the setlist</h1>
+          <p className="mt-2 max-w-md text-body text-fog">The link may be old, or the page has moved.</p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Button to="/">Back to home</Button>
+            <Button to="/practice" variant="subtle">Go practise</Button>
+          </div>
+        </div>
+      </div>
+    </PageShell>
   )
 }
 

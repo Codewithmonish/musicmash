@@ -1,127 +1,146 @@
+/*
+ * MusicMash base styles. Tokens: docs/MUSICMASH_DESIGN_SYSTEM.md (derived from docs/DESIGN.md).
+ * Flat, near-black, achromatic chrome; imagery supplies the colour.
+ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Colors */
+  --color-obsidian: #121212;
+  --color-graphite: #303030;
+  --color-mid-gray: #666666;
+  --color-fog: #999999;
+  --color-silver: #cccccc;
+  --color-bone: #f2f2f2;
+  --color-white: #ffffff;
+  --color-signal-blue: #699fff;
+  --color-status-good: #0ca30c;
+  --color-status-warning: #fab219;
+  --color-status-critical: #d03b3b;
+
+  /* Typography */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --text-caption: 12px;      --leading-caption: 1.41;
+  --text-body-sm: 14px;      --leading-body-sm: 1.43;
+  --text-body: 17px;         --leading-body: 1.41;
+  --text-subheading: 22px;   --leading-subheading: 1.27;
+  --text-heading-sm: 28px;   --leading-heading-sm: 1.29;
+  --text-heading: 36px;      --leading-heading: 1.33;
+  --text-display: 60px;      --leading-display: 1;
+  --font-weight-thin: 100;
+  --font-weight-regular: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Spacing (4px base) */
+  --spacing-unit: 4px;
+  --spacing-4: 4px;   --spacing-8: 8px;   --spacing-12: 12px;  --spacing-16: 16px;
+  --spacing-20: 20px; --spacing-24: 24px; --spacing-32: 32px;  --spacing-40: 40px;
+  --spacing-48: 48px; --spacing-64: 64px; --spacing-96: 96px;  --spacing-180: 180px;
+
+  /* Layout */
+  --page-max-width: 1200px;
+  --section-gap: 64px;
+  --card-padding: 16px;
+  --element-gap: 8px;
+
+  /* Radii */
+  --radius-cards: 0px;
+  --radius-badges: 4px;
+  --radius-images: 4px;
+  --radius-inputs: 4px;
+  --radius-buttons: 4px;
+
+  /* Elevation: inset hairline only */
+  --shadow-subtle: rgba(18, 18, 18, 0.1) 0px 0px 0px 1px inset;
+
+  color-scheme: dark;
+}
+
 @layer base {
-  * {
-    @apply border-white/10;
-  }
-  
-  body {
-    @apply bg-background text-text font-sans antialiased selection:bg-primary/30 selection:text-white overflow-x-hidden;
-    background-color: #06060A;
-  }
-  
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-obsidian text-white font-sans text-body-sm antialiased;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--color-white);
+    color: var(--color-obsidian);
+  }
+
+  /* Visible keyboard focus everywhere: 2px white outline (Obsidian on the light band). */
+  :focus-visible {
+    outline: 2px solid var(--color-white);
+    outline-offset: 2px;
+  }
+  .on-light :focus-visible {
+    outline-color: var(--color-obsidian);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  img {
+    max-width: 100%;
   }
 }
 
 @layer components {
-  /* Futuristic Cyber Glass */
-  .glass {
-    @apply bg-surface/60 backdrop-blur-xl border border-white/10 shadow-2xl;
-  }
-  
-  .glass-card {
-    @apply bg-surface/70 backdrop-blur-xl rounded-2xl p-6 border border-white/10 shadow-glass-card hover:border-primary/30 transition-all duration-300;
-  }
-  
-  .glass-card-glow {
-    @apply bg-surface/80 backdrop-blur-xl rounded-2xl p-6 border border-primary/20 shadow-glow-purple hover:border-primary/50 transition-all duration-300;
-  }
-  
-  /* Gradient text */
-  .gradient-text {
-    @apply bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent;
+  /* Page content column: 1200px max, 16px gutters on phones, 24px on larger screens. */
+  .page {
+    @apply mx-auto w-full max-w-page px-4 sm:px-6;
   }
 
-  .gradient-text-cyan {
-    @apply bg-gradient-to-r from-accent via-primary to-secondary bg-clip-text text-transparent;
+  /* Inline text link: the only place Signal Blue appears in running text. */
+  .link {
+    @apply text-signal hover:underline underline-offset-2;
   }
 
-  /* Glow borders */
-  .glow-border {
-    @apply border border-primary/30 hover:border-primary/70 shadow-glow-purple transition-all duration-300;
-  }
-  
-  /* Buttons */
-  .btn-primary {
-    @apply relative overflow-hidden bg-gradient-to-r from-primary via-secondary to-primary bg-[length:200%_auto] text-white font-semibold px-6 py-3 rounded-xl shadow-glow-purple hover:shadow-glow-magenta transition-all duration-500 transform hover:scale-[1.02] active:scale-[0.98];
-  }
-  
-  .btn-secondary {
-    @apply bg-white/5 hover:bg-white/10 text-white font-semibold px-6 py-3 rounded-xl border border-white/15 hover:border-white/30 backdrop-blur-md transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98];
+  /* Dark overlay that keeps hero text legible over photography (the one allowed gradient). */
+  .hero-scrim {
+    background:
+      linear-gradient(90deg, rgba(18, 18, 18, 0.88) 0%, rgba(18, 18, 18, 0.55) 45%, rgba(18, 18, 18, 0.1) 100%),
+      linear-gradient(0deg, rgba(18, 18, 18, 0.9) 0%, rgba(18, 18, 18, 0) 35%);
   }
 
-  .btn-accent {
-    @apply bg-gradient-to-r from-accent to-primary text-background font-bold px-6 py-3 rounded-xl shadow-glow-cyan hover:shadow-glow-purple transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98];
+  /* Bottom fade for image tiles that carry a text label. */
+  .tile-scrim {
+    background: linear-gradient(0deg, rgba(18, 18, 18, 0.85) 0%, rgba(18, 18, 18, 0) 60%);
   }
 
-  .btn-outline {
-    @apply border border-primary/50 text-primary-light hover:bg-primary/10 hover:border-primary px-6 py-3 rounded-xl transition-all duration-300;
+  .hairline {
+    box-shadow: var(--shadow-subtle);
   }
 
-  /* Form Inputs */
-  .input-field {
-    @apply bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text placeholder:text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 backdrop-blur-md transition-all duration-300;
-  }
-
-  /* Hover Effects */
-  .card-hover {
-    @apply transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-glow-purple hover:border-primary/40;
+  /* Thin, quiet scrollbars on dark surfaces. */
+  .scroll-quiet {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-mid-gray) transparent;
   }
 }
 
-@layer utilities {
-  .text-glow-sm {
-    text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
-  }
-
-  .text-glow-cyan {
-    text-shadow: 0 0 15px rgba(6, 182, 212, 0.6);
-  }
-  
-  .text-glow {
-    text-shadow: 0 0 25px rgba(139, 92, 246, 0.7), 0 0 50px rgba(236, 72, 153, 0.4);
-  }
-  
-  .bg-radial-atmosphere {
-    background: radial-gradient(circle at 50% -20%, rgba(139, 92, 246, 0.15), rgba(6, 182, 212, 0.08) 50%, rgba(6, 6, 10, 0) 80%);
-  }
-
-  .bg-cyber-grid {
-    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-  }
-
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-  
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+/* Motion: respect the user's reduced-motion setting everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
-/* Custom Futuristic Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+@keyframes eq-bounce {
+  0%, 100% { transform: scaleY(0.25); }
+  50% { transform: scaleY(1); }
 }
-
-::-webkit-scrollbar-track {
-  background: #06060A;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.3);
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.6);
-}
-

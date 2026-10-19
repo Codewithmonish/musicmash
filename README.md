@@ -1,308 +1,192 @@
-# Music Mash - Platform Architecture
+# MusicMash
 
-## Overview
+**An AI music-practice platform that measures your pitch in cents and your timing in milliseconds,
+then coaches you using only what it measured.**
 
-Music Mash is a scalable platform for music skill development, connecting musicians with expert judges and AI-powered feedback systems. The platform provides an accessible way for talented musicians to showcase their skills, receive professional feedback, and compete in a supportive community.
+[![CI](https://github.com/Codewithmonish/musicmash/actions/workflows/ci.yml/badge.svg)](https://github.com/Codewithmonish/musicmash/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-699fff.svg)](LICENSE)
+![Python 3.14](https://img.shields.io/badge/python-3.14-3776ab.svg)
+![React 18](https://img.shields.io/badge/react-18-61dafb.svg)
+![Spring Boot 3.2](https://img.shields.io/badge/spring%20boot-3.2-6db33f.svg)
+![FastAPI](https://img.shields.io/badge/fastapi-0.139-009688.svg)
 
-## Project Status
+![MusicMash demo: practice tools, recording studio, pitch curve with a sharp note, comparison timeline and AI coach](docs/media/demo.gif)
 
-**Implementation Status: Complete (All 11 Phases)**
+**[▶ Watch the full demo](docs/media/demo.mp4)** (2 minutes, MP4). The GIF above is the same walkthrough at 3× speed.
 
-✅ **Phase 1:** Database + Authentication - MySQL integration, JWT auth, user registration/login  
-✅ **Phase 2:** User Profiles + Dashboard - Onboarding flow, profile management, real-time dashboard  
-✅ **Phase 3:** Performance Studio + Recording - Audio/video recording, file upload, draft management  
-✅ **Phase 4:** Judge Evaluation - Performance evaluation, scoring system, feedback generation  
-✅ **Phase 5:** Competitions + Leaderboard - Competition system, leaderboard, registration  
-✅ **Phase 6:** Practice Arena + Gamification - Guided exercises, XP system, level progression  
-✅ **Phase 7:** AI Analysis + AI Coach - AI-powered performance analysis and coaching  
-✅ **Phase 8:** Challenges + Achievements - Challenge system, achievement tracking, rewards  
-✅ **Phase 9:** Social + Discovery + Notifications - User discovery, social features, notifications  
-✅ **Phase 10:** Premium UI/UX + Animations - Enhanced navigation, mobile responsiveness, animations  
-✅ **Phase 11:** Testing + Optimization + Documentation - Build verification, documentation updates
+Record or upload a take and MusicMash tells you, note by note, how far from the centre of the
+pitch you were and how far from the beat you landed. It can line your take up with an original
+recording to show where you rushed or went sharp, and an AI coach turns those measurements into a
+practice plan. Every number on screen is computed from your audio; when something can't be
+measured, the app says so and explains why.
 
-## Project Vision
+## Screenshots
 
-Help talented musicians who cannot afford expensive music courses by providing:
-- Performance showcase platform
-- Expert judge evaluations
-- AI-powered feedback
-- Skill progression tracking
-- Competition system
-- Community growth
-
-## Architecture Documentation
-
-### 1. [System Architecture](ARCHITECTURE.md)
-Complete system architecture including:
-- High-level architecture diagram
-- Microservices breakdown
-- Technology stack details
-- Security architecture
-- Data flow architecture
-- Scalability strategy
-- Monitoring & observability
-- Deployment architecture
-
-### 2. [Database Design](DATABASE_DESIGN.md)
-Database schema including:
-- Entity relationship diagram
-- Table definitions
-- Relationships between entities
-- Indexes and constraints
-
-### 3. [Database Schema](DATABASE_SCHEMA.sql)
-Complete SQL schema for MySQL:
-- All table definitions
-- Foreign key constraints
-- Indexes
-- Ready to execute
-
-### 4. [Backend Structure](BACKEND_STRUCTURE.md)
-Backend folder structure:
-- Microservices organization
-- Package structure per service
-- Common components
-- Docker configuration
-
-### 5. [API Design](API_DESIGN.md)
-REST API endpoints for all services:
-- Authentication Service (Port 8081)
-- User Service (Port 8082)
-- Performance Service (Port 8083)
-- Evaluation Service (Port 8084)
-- Competition Service (Port 8085)
-- Notification Service (Port 8086)
-- WebSocket endpoints
-
-### 6. [Development Roadmap](DEVELOPMENT_ROADMAP.md)
-32-week development plan:
-- Phase 1: Foundation & Authentication (Weeks 1-4)
-- Phase 2: Performance & Evaluation (Weeks 5-8)
-- Phase 3: Competition System (Weeks 9-12)
-- Phase 4: AI Service Foundation (Weeks 13-16)
-- Phase 5: Advanced AI Features (Weeks 17-20)
-- Phase 6: Additional AI Features (Weeks 21-24)
-- Phase 7: Testing & Optimization (Weeks 25-28)
-- Phase 8: Deployment & Launch (Weeks 29-32)
-- Phase 9: Post-Launch (Ongoing)
-
-### 7. [AI Integration Strategy](AI_INTEGRATION.md)
-AI service implementation:
-- AI service architecture
-- Feature implementation details
-- Technology stack
-- Integration flow
-- API endpoints
-- Model training strategy
-
-## Technology Stack
-
-### Backend
-- Java 17+ with Spring Boot 3.x
-- Spring Security 6.x with JWT
-- Hibernate/JPA with MySQL 8.0+
-- Maven for dependency management
-
-### Frontend
-- React 18+
-- Tailwind CSS 3.x
-- React Router 6.x
-- Framer Motion for animations
-- Axios for API calls
-- React Hot Toast for notifications
-
-### Database
-- MySQL 8.0+ for primary data storage
-- Schema includes: users, profiles, performances, evaluations, competitions, challenges, achievements, notifications
-
-### Infrastructure
-- File upload service for audio/video storage
-- Environment variable configuration for security
-- Production-ready build system (Vite)
-
-## Backend Services
-
-The backend is currently implemented as a monolithic Spring Boot application with the following modules:
-
-1. **Authentication** - User auth, JWT tokens, registration/login
-2. **User Management** - Profiles, onboarding, user data
-3. **Performance** - Upload, storage, metadata, draft management
-4. **Evaluation** - Judge evaluations, scoring system
-5. **Competition** - Competitions, leaderboard, registration
-6. **Practice** - Exercises, XP system, gamification
-7. **Challenges** - Challenge system, achievements, rewards
-8. **Social** - User discovery, follow system, notifications
-9. **File Upload** - Audio/video file storage service
-
-**Note:** The architecture is designed to be easily split into microservices as the application scales.
-
-## Frontend Features
-
-### Pages & Routes
-- **Landing Page** - Public landing with project overview
-- **Authentication** - Login and registration with JWT
-- **Onboarding** - Multi-step user profile setup
-- **Dashboard** - User stats, recent performances, activity feed
-- **Profile** - Profile management and editing
-- **Upload** - Audio/video recording and file upload
-- **Practice Arena** - Guided exercises with XP rewards
-- **Challenges** - Challenge system and achievements
-- **Social** - User discovery, follow system, notifications
-- **Competitions** - Competition browsing and registration
-- **Leaderboard** - Global rankings display
-- **AI Analysis** - Performance analysis results
-- **Judge Dashboard** - Performance evaluation interface
-
-### UI/UX Features
-- Responsive design (mobile, tablet, desktop)
-- Glass morphism effects
-- Smooth animations with Framer Motion
-- Toast notifications
-- Loading states and skeletons
-- Empty states
-- Form validation
-- Protected routes with authentication
-- Active navigation highlighting
-- Dropdown menus
-- Mobile hamburger menu
-
-## Getting Started
-
-### Prerequisites
-- Java 17+
-- Node.js 18+
-- MySQL 8.0+
-- Maven (for backend)
-- npm/yarn (for frontend)
-
-### Local Development Setup
-
-#### 1. Database Setup
-```bash
-# Start MySQL or use existing instance
-# Run the database schema
-mysql -u root -p < DATABASE_SCHEMA.sql
-```
-
-#### 2. Backend Setup
-
-The backend reads its secrets from environment variables (see `music-mash-backend/.env.example`).
-`application.properties` only contains `${DB_USERNAME}`, `${DB_PASSWORD}` and `${JWT_SECRET}` placeholders,
-so the app will fail to start until these are set.
-
-| Variable | Meaning |
+| | |
 |---|---|
-| `DB_USERNAME` | MySQL user (e.g. `root`) |
-| `DB_PASSWORD` | MySQL password |
-| `JWT_SECRET` | Base64-encoded key, at least 32 bytes when decoded |
+| ![Landing page](docs/screenshots/landing.webp) | ![Practice Arena with metronome and tuner running](docs/screenshots/practice-tools.webp) |
+| **Landing.** Photography carries the colour; the interface stays flat and quiet. | **Practice Arena.** Lookahead-scheduled metronome and an in-browser YIN tuner with ±20/35 ¢ bands. |
+| ![Recording studio with live level meter and waveform](docs/screenshots/studio-recording.webp) | ![Pitch curve with the sharp E4 hovered](docs/screenshots/pitch-contour-sharp-note.webp) |
+| **Studio.** Record in the browser with a live level meter and waveform, or upload a WAV/MP3. | **Pitch curve.** Every note coloured by how far off it was; hovering shows the note and its cents. |
+| ![Reference comparison timeline](docs/screenshots/comparison-timeline.webp) | ![AI coach in basic mode](docs/screenshots/ai-coach.webp) |
+| **Reference comparison.** DTW lines the take up with the original; blocks mark where it went sharp or rushed. | **AI coach.** Measured problems as evidence chips, exercises from the practice library, a 7-day plan. |
+| ![Leaderboard](docs/screenshots/leaderboard.webp) | ![The pitch curve on a 390 px phone screen](docs/screenshots/mobile-pitch-curve.webp) |
+| **Leaderboard.** Ranked by XP, which only comes from sessions scored on measured intonation and timing. | **Mobile.** Every page works at 390 px. |
 
-**PowerShell (current terminal session only):**
-```powershell
-$env:DB_USERNAME = "root"
-$env:DB_PASSWORD = "your-mysql-password"
-$env:JWT_SECRET  = [Convert]::ToBase64String((1..48 | ForEach-Object { Get-Random -Maximum 256 }))
-cd music-mash-backend
-mvn spring-boot:run
-# Backend runs on http://localhost:8081
+## Features
+
+**Platform**
+- Accounts with JWT authentication, onboarding (instruments, styles, level) and profiles
+- Performances: record or upload, then analyse; submit for judging
+- Competitions with registration, hosted by HOST users
+- Human judging on six criteria with written feedback; approved performances appear on the home page
+- Leaderboard, follow other musicians, notifications
+- AI results are private: another user's analysis, comparison or coaching returns 404
+- One-click Windows launcher: React served by Spring on one address, `http://localhost:8081`
+
+**AI & audio**
+- Intonation in cents per note with pYIN, plus a note-by-note pitch curve
+- Timing error in milliseconds against a fitted beat grid, tempo and tempo drift
+- Comparison with an original recording using dynamic time warping, with sharp / flat /
+  rushing / dragging / missing-notes sections
+- RAG practice coach with a grounding check, plus a "basic mode" that needs no API key
+- Rule-based level and feedback from those measurements (a trained model is Phase 6)
+
+**Practice tools**
+- Metronome scheduled on the Web Audio clock (40–220 BPM, time signatures, accented downbeat)
+- Live tuner (YIN in plain JavaScript) with a cents needle
+- Exercise library; each session records, gets analysed, and earns XP from the measured result
+- Practice heatmap of the last year, session clock and streaks
+
+## How the AI works
+
+- **Intonation (pYIN, cents).** librosa's pYIN estimates the pitch of every frame. Each frame is
+  compared with the nearest equal-tempered note: `cents = 100 · (midi − round(midi))`, where
+  `midi = 69 + 12·log2(f0/440)`. That gives a range of ±50 ¢, with + meaning sharp. Notes are segmented from stable
+  stretches, and the app reports mean deviation, sharp/flat bias and steadiness within held
+  notes. → [METRICS.md](music-mash-ai/docs/METRICS.md)
+- **Rhythm (onsets vs a beat grid).** Onsets are detected from the onset-strength envelope and a
+  steady grid is fitted to the tracked beats at sixteenth-note resolution. Timing error is the mean
+  |onset − nearest grid point| in ms; tempo drift is second-half minus first-half BPM.
+  → [METRICS.md §4](music-mash-ai/docs/METRICS.md)
+- **Reference comparison (DTW).** Both recordings become sequences of chroma, onset and pitch
+  features. Dynamic time warping finds the cheapest alignment path, so a slower or faster take
+  still lines up note for note. Along the path the app compares pitch (cents) and local tempo
+  and flags problem sections. → [ALIGNMENT.md](music-mash-ai/docs/ALIGNMENT.md)
+- **RAG coach with a grounding check.** Plain code first turns the metrics into a diagnosis
+  whose evidence quotes the measured values ("Average signed deviation is +15.8 cents"). Chroma
+  then retrieves practice docs for each problem, filtered by instrument and level. An LLM (Gemini via
+  LangChain, structured output) writes the advice. Code then checks it: evidence must be quoted
+  verbatim, sources must be retrieved docs, and any number that wasn't measured gets the answer
+  rejected. Without an API key, the coach shows the diagnosis and exercises as written.
+  → [AI_COACH.md](music-mash-ai/docs/AI_COACH.md)
+
+## Architecture
+
+```mermaid
+flowchart LR
+    B["Browser<br/>React 18 + Tailwind<br/>Web Audio: recorder, tuner, metronome"]
+    S["Spring Boot 3.2 :8081<br/>serves the React app<br/>JWT auth, REST API<br/>/api/ai/** proxy + X-User-Id"]
+    F["FastAPI :8000<br/>librosa: pYIN, onsets, DTW<br/>coach pipeline"]
+    M[("MySQL<br/>users, performances,<br/>competitions, practice")]
+    Q[("SQLite<br/>analyses, comparisons,<br/>coach cache")]
+    C[("Chroma<br/>practice docs +<br/>MiniLM embeddings")]
+    G["Gemini<br/>(optional)"]
+    U[/"uploads/<br/>shared audio folder"/]
+
+    B -- "HTTPS /api" --> S
+    S --> M
+    S -- "REST, snake_case contract" --> F
+    F --> Q
+    F --> C
+    F -. "structured output" .-> G
+    S --> U
+    F --> U
 ```
-To keep them across sessions use `[Environment]::SetEnvironmentVariable("DB_PASSWORD", "...", "User")`
-and open a new terminal. Keep the same `JWT_SECRET` between runs, otherwise existing tokens stop working.
 
-**Git Bash:** `export DB_USERNAME=root DB_PASSWORD=... JWT_SECRET=$(openssl rand -base64 48)`
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, Vite, Tailwind CSS, Framer Motion, Recharts, Web Audio API |
+| Backend | Spring Boot 3.2 (Java 17), Spring Security + JWT, Spring Data JPA, MySQL |
+| AI service | FastAPI, librosa (pYIN, onsets, chroma), NumPy/SciPy, SQLAlchemy + SQLite |
+| AI coach | LangChain, Gemini (`langchain-google-genai`), Chroma, sentence-transformers (all-MiniLM-L6-v2) |
+| Testing | pytest (generated audio), JUnit 5, shared JSON contract fixtures, Playwright checks |
+| Tooling | GitHub Actions CI, PowerShell launcher, Pillow and ffmpeg for media |
 
-**IntelliJ IDEA:** Run → Edit Configurations → select the Spring Boot app → *Environment variables* →
-`DB_USERNAME=root;DB_PASSWORD=...;JWT_SECRET=...`
+## Quick start (Windows)
 
-**VS Code (Spring Boot / Java extension):** add an `env` block to the launch configuration in
-`.vscode/launch.json`, or point `envFile` at a local, git-ignored `.env` file:
-```json
-{
-  "type": "java",
-  "name": "MusicMash Backend",
-  "request": "launch",
-  "mainClass": "com.musicmash.MusicMashApplication",
-  "projectName": "music-mash-backend",
-  "envFile": "${workspaceFolder}/music-mash-backend/.env"
-}
+**One click.** Double-click `MusicMash.bat` (or the Desktop shortcut from
+`scripts\create_shortcut.ps1`). The first run sets everything up. Later runs start in about 35 s
+and open `http://localhost:8081`. Press any key in the window, or close it, to stop.
+
+**Needs:** Java 17+, Maven, Node.js 18+, Python 3.11+ and a running MySQL. The launcher handles
+the rest: venv, packages, frontend build, jar build, health checks.
+
+**Environment variables** (names only; copy each `.env.example` to `.env`):
+
+| Service | Required | Optional |
+|---|---|---|
+| `music-mash-backend/.env` | `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET` | |
+| `music-mash-ai/.env` | | `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL` (coach falls back to basic mode) |
+| `music-mash-frontend/.env` | | `VITE_API_URL` (developer mode only) |
+
+**Manual / developer mode** (Vite hot reload on 5173, demo data, Playwright screenshots):
+see [RUN_LOCAL.md](RUN_LOCAL.md).
+
+## Project structure
+
 ```
-(`.env` files are git-ignored; only `.env.example` is committed.)
-
-#### 3. Frontend Setup
-```bash
-cd music-mash-frontend
-cp .env.example .env   # sets VITE_API_URL
-npm install
-npm run dev
-# Frontend runs on http://localhost:3000
+musicMash/
+├── MusicMash.bat            one-click launcher (runs scripts/launch.ps1)
+├── music-mash-frontend/     React app
+│   ├── src/                 pages, components (ui, ai, practice), audio (Web Audio)
+│   └── public/images/       Unsplash photos + CREDITS.md
+├── music-mash-backend/      Spring Boot API
+│   ├── src/main/java/       controllers, services, entities, security
+│   └── src/test/java/       JUnit tests
+├── music-mash-ai/           FastAPI AI service
+│   ├── app/                 api, services/audio (pure DSP), services/coach, models, schemas
+│   ├── knowledge/           36 practice docs for the coach
+│   ├── tests/               pytest suite, all audio generated in code
+│   └── docs/                METRICS, ALIGNMENT, AI_COACH
+├── contracts/               JSON fixtures shared by Spring and FastAPI tests
+├── scripts/                 launcher, build, demo data, screenshots, media
+├── docs/                    design system, screenshots, media, archive
+└── .github/workflows/       CI
 ```
 
-#### 4. Build for Production
-```bash
-cd music-mash-frontend
-npm run build
-# Output in dist/ directory
-```
+## Testing
 
-## Development Phases
+| Suite | Command | Count |
+|---|---|---|
+| AI service | `cd music-mash-ai; .venv\Scripts\python -m pytest` | 119 tests (+1 slow test needing the real embedding model: `-m slow`) |
+| Backend | `cd music-mash-backend; mvn test` | 15 tests (contract, serialisation, practice scoring) |
+| Frontend | `cd music-mash-frontend; npm run build` | build must pass |
 
-Follow the [Development Roadmap](DEVELOPMENT_ROADMAP.md) for phased implementation:
-- Start with authentication and user management
-- Build performance upload and evaluation
-- Implement competition system
-- Add AI capabilities
-- Test and optimize
-- Deploy to production
+Test audio is generated in code. For example, a 440 Hz sine detuned by +30 ¢ must measure about
++30 ¢, and clicks at 120 BPM with ±40 ms jitter must give the expected timing error. CI runs all
+three on every push and pull request.
 
-## API Documentation
+## Roadmap
 
-API endpoints are documented in [API Design](API_DESIGN.md). Once implemented, Swagger UI will be available at:
-- http://localhost:8081/swagger-ui.html (Auth Service)
-- http://localhost:8082/swagger-ui.html (User Service)
-- etc.
+- **Phase 5:** instrument auto-detection (a classifier trained on a public dataset, with a report)
+- **Phase 6:** a trained skill-level model to replace the current rule-based thresholds
+- **Phase 7:** integration, clean-up and deployment (containers, hosted demo)
 
-## Security
+## Credits
 
-- JWT-based authentication
-- Role-based access control (USER, JUDGE, HOST, ADMIN)
-- BCrypt password encryption
-- HTTPS/TLS encryption
-- Rate limiting
-- Input validation
-- SQL injection prevention
-
-## AI Features
-
-- Audio performance analysis (pitch, rhythm, tempo)
-- Anti-cheating detection (video-audio sync)
-- Skill level detection
-- AI personal coach
-- AI judge assistant
-- Music similarity detection
-- Collaboration recommendations
-- AI mentor chatbot
-
-## Monitoring
-
-- Prometheus for metrics collection
-- Grafana for visualization
-- ELK Stack for logging
-- Health checks for all services
-- Error tracking and alerting
-
-## Contributing
-
-Follow clean architecture principles:
-- SOLID principles
-- DTO pattern
-- Exception handling
-- Input validation
-- Unit tests (80%+ coverage)
-- Code review required
+- **Photos:** 62 photographs from [Unsplash](https://unsplash.com), used under the Unsplash
+  License. Every photographer is credited in
+  [CREDITS.md](music-mash-frontend/public/images/CREDITS.md) and on the in-app Photo credits page.
+- **Melodies:** every melody in the tests and the demo is a note sequence generated in code for
+  this project. No recordings or third-party melodies are included.
+- **Typeface:** Inter (SIL Open Font License).
 
 ## License
 
-Proprietary - All rights reserved
+[MIT](LICENSE) © 2026 Codewithmonish. Photos keep the Unsplash License and the typeface its
+own licence, as listed in [LICENSE](LICENSE).
 
-## Contact
+## Author
 
-For questions about the architecture, refer to the individual documentation files or contact the development team.
+**Codewithmonish** · [github.com/Codewithmonish](https://github.com/Codewithmonish)

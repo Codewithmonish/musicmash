@@ -37,6 +37,14 @@ public class PracticeSession {
     @Column(name = "duration_seconds")
     private Integer durationSeconds;
 
+    /** Exercise from the library that was practised (null for older sessions). */
+    @Column(name = "exercise_id")
+    private Long exerciseId;
+
+    /** AI-service analysis the scores came from (null for sessions recorded before real scoring). */
+    @Column(name = "analysis_id")
+    private Long analysisId;
+
     @Column(name = "completed_at", updatable = false)
     private LocalDateTime completedAt = LocalDateTime.now();
 
@@ -53,6 +61,12 @@ public class PracticeSession {
         this.xpEarned = xpEarned;
         this.durationSeconds = durationSeconds;
     }
+
+    public Long getExerciseId() { return exerciseId; }
+    public void setExerciseId(Long exerciseId) { this.exerciseId = exerciseId; }
+
+    public Long getAnalysisId() { return analysisId; }
+    public void setAnalysisId(Long analysisId) { this.analysisId = analysisId; }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

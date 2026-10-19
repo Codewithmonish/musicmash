@@ -2,13 +2,19 @@ package com.musicmash.controller;
 
 import com.musicmash.dto.AIAnalysisRequestDTO;
 import com.musicmash.dto.AIAnalysisResponseDTO;
+import com.musicmash.dto.CoachRequestDTO;
+import com.musicmash.dto.CompareRequestDTO;
+import com.musicmash.dto.ReferenceUploadRequestDTO;
 import com.musicmash.entity.User;
+import com.musicmash.repository.PerformanceRepository;
+import com.musicmash.repository.ProfileRepository;
 import com.musicmash.repository.UserRepository;
 import com.musicmash.service.AIIntegrationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/ai")
@@ -17,48 +23,117 @@ public class AIController {
 
     private final AIIntegrationService aiIntegrationService;
     private final UserRepository userRepository;
+    private final ProfileRepository profileRepository;
+    private final PerformanceRepository performanceRepository;
 
-    public AIController(AIIntegrationService aiIntegrationService, UserRepository userRepository) {
+    public AIController(AIIntegrationService aiIntegrationService, UserRepository userRepository,
+                        ProfileRepository profileRepository, PerformanceRepository performanceRepository) {
         this.aiIntegrationService = aiIntegrationService;
         this.userRepository = userRepository;
+        this.profileRepository = profileRepository;
+        this.performanceRepository = performanceRepository;
     }
 
     @PostMapping("/analyze")
     public ResponseEntity<AIAnalysisResponseDTO> submitAnalysis(
             @RequestBody AIAnalysisRequestDTO request,
             Authentication authentication) {
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+
+        // Set user ID from authenticated user
+        request.setUserId(user.getId());
+        // A performance can only be analysed by its owner (same 404 as a missing id).
+        if (request.getPerformanceId() != null && !performanceRepository.findById(request.getPerformanceId())
+                .map(performance -> performance.getUser().getId().equals(user.getId())).orElse(false)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Performance not found");
+        }
+
         try {
-            String email = authentication.getName();
-            User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-            
-            // Set user ID from authenticated user
-            request.setUserId(user.getId());
-            
             AIAnalysisResponseDTO response = aiIntegrationService.submitForAnalysis(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to submit analysis: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
         }
     }
 
     @GetMapping("/status/{analysisId}")
-    public ResponseEntity<String> getAnalysisStatus(@PathVariable Long analysisId) {
-        try {
-            String response = aiIntegrationService.getAnalysisStatus(analysisId);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to get analysis status: " + e.getMessage());
-        }
+    public ResponseEntity<String> getAnalysisStatus(@PathVariable Long analysisId, Authentication authentication) {
+        return aiIntegrationService.getAnalysisStatus(analysisId, currentUser(authentication).getId());
     }
 
     @GetMapping("/result/{analysisId}")
-    public ResponseEntity<String> getAnalysisResult(@PathVariable Long analysisId) {
-        try {
-            String response = aiIntegrationService.getAnalysisResult(analysisId);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to get analysis result: " + e.getMessage());
+    public ResponseEntity<String> getAnalysisResult(@PathVariable Long analysisId, Authentication authentication) {
+        return aiIntegrationService.getAnalysisResult(analysisId, currentUser(authentication).getId());
+    }
+
+    @GetMapping("/result/{analysisId}/pitch-contour")
+    public ResponseEntity<String> getPitchContour(@PathVariable Long analysisId, Authentication authentication) {
+        return aiIntegrationService.getPitchContour(analysisId, currentUser(authentication).getId());
+    }
+
+    // --- Reference tracks and comparisons (Phase 3) ------------------------------------
+
+    @PostMapping("/references")
+    public ResponseEntity<String> createReference(@RequestBody ReferenceUploadRequestDTO request,
+                                                  Authentication authentication) {
+        boolean canUpload = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_HOST") || a.getAuthority().equals("ROLE_ADMIN"));
+        if (!canUpload) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only hosts and admins can add reference tracks");
         }
+        try {
+            return aiIntegrationService.createReference(request, currentUser(authentication).getId());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
+    }
+
+    @GetMapping("/references")
+    public ResponseEntity<String> listReferences() {
+        return aiIntegrationService.listReferences();
+    }
+
+    @GetMapping("/references/{referenceId}")
+    public ResponseEntity<String> getReference(@PathVariable Long referenceId) {
+        return aiIntegrationService.getReference(referenceId);
+    }
+
+    @PostMapping("/compare")
+    public ResponseEntity<String> compare(@RequestBody CompareRequestDTO request, Authentication authentication) {
+        try {
+            return aiIntegrationService.compare(request, currentUser(authentication).getId());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
+    }
+
+    @GetMapping("/compare/{comparisonId}/status")
+    public ResponseEntity<String> getComparisonStatus(@PathVariable Long comparisonId, Authentication authentication) {
+        return aiIntegrationService.getComparisonStatus(comparisonId, currentUser(authentication).getId());
+    }
+
+    @GetMapping("/compare/{comparisonId}/result")
+    public ResponseEntity<String> getComparisonResult(@PathVariable Long comparisonId, Authentication authentication) {
+        return aiIntegrationService.getComparisonResult(comparisonId, currentUser(authentication).getId());
+    }
+
+    /** AI coach for an analysis; the user's experience level is taken from their profile. */
+    @PostMapping("/coach/{analysisId}")
+    public ResponseEntity<String> coach(@PathVariable Long analysisId,
+                                        @RequestBody(required = false) CoachRequestDTO request,
+                                        Authentication authentication) {
+        User user = currentUser(authentication);
+        String level = profileRepository.findByUserId(user.getId())
+                .map(profile -> profile.getExperienceLevel() == null ? null : profile.getExperienceLevel().name())
+                .orElse(null);
+        boolean refresh = request != null && Boolean.TRUE.equals(request.getRefresh());
+        return aiIntegrationService.coach(analysisId, user.getId(), level, refresh);
+    }
+
+    private User currentUser(Authentication authentication) {
+        return userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
     }
 }

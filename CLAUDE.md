@@ -54,7 +54,10 @@ scikit-learn, LangChain, LangGraph, Transformers, Pandas, Redis, Celery, Git.
 - Frontend: `npm run build` must pass before committing frontend changes.
 
 ## Git workflow (automatic)
-- Work on branch `rebuild/tier1-ai`. Create it if it doesn't exist. Never commit directly to `main` (the only exception is the Phase 0 initial import).
+- Work on **a branch per phase**, created from an up-to-date `main` (e.g. `phase-5/instrument-classifier`).
+  Never commit directly to `main`.
+- When the phase is done, open a **pull request into `main`**, wait for CI (`.github/workflows/ci.yml`) to
+  pass, then merge it with a merge commit. Start the next phase's branch from the updated `main`.
 - After **each completed task** (tests passing): `git add -A`, commit, then `git push`.
 - Commit messages use Conventional Commits, e.g. `feat(ai): add pYIN pitch accuracy in cents`,
   `test(ai): add synthetic sine fixtures`, `fix(frontend): remove random accuracy`.
@@ -74,11 +77,16 @@ scikit-learn, LangChain, LangGraph, Transformers, Pandas, Redis, Celery, Git.
 
 ## Progress log
 Update this list at the end of each phase (one line per item).
-- [ ] Phase 0 — cleanup, secrets, git setup
-- [ ] Phase 1 — real pitch and rhythm metrics
-- [ ] Phase 2 — pitch contour visualizer
-- [ ] Phase 3 — reference-track comparison (DTW)
-- [ ] Phase 4 — RAG AI coach
+- [x] Phase 0 — cleanup, secrets, git setup
+- [x] Phase 1 — real pitch and rhythm metrics
+- [x] Phase 2 — pitch contour visualizer
+- [x] Phase 2.5 — Spring↔AI contract fixes, intonation rename, local run scripts, verified end-to-end with Playwright
+- [x] Phase 3 — reference-track comparison (DTW)
+- [x] UI redesign — dark design system (docs/MUSICMASH_DESIGN_SYSTEM.md), Unsplash imagery, every page rebuilt, real Practice Arena
+- [x] Phase 4 — RAG AI coach (grounded: deterministic diagnosis, Chroma retrieval, Gemini structured output, basic mode without a key)
+- [x] Phase 4.5 — owner-only AI data (X-User-Id, 404 for others), fast default tests (fake embeddings, slow marker), demo video + GIF in docs/media
+- [x] One-click app — MusicMash.bat / Desktop shortcut: setup, build-if-changed, Spring serves React on :8081, clean stop
+- [x] GitHub complete — security sweep, README + screenshots + demo, MIT license, CI (pytest, build, mvn), social preview, repo topics, merged into main via PR #1
 - [ ] Phase 5 — instrument auto-detection model
 - [ ] Phase 6 — skill-level model
 - [ ] Phase 7 — integration, cleanup, README
